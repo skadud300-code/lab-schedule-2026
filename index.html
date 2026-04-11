@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#0f2744">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="스케줄">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<title>Reagent On-Board Stability</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyAWuTlSadsagMSl3yRSOgT688gkbeqI0c4",
+    authDomain: "lab-schedule-2026.firebaseapp.com",
+    projectId: "lab-schedule-2026",
+    storageBucket: "lab-schedule-2026.firebasestorage.app",
+    messagingSenderId: "376979959324",
+    appId: "1:376979959324:web:f15a283d034f4b5334f9d9"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+  const REF = db.collection('shared').doc('labdata');
+
+  window.fs_save = function(data) {
+    REF.set(data, {merge:true}).catch(e => console.error('저장 오류', e));
+  };
+
+  REF.onSnapshot(function(snap) {
+    if (!snap.exists) return;
+    const d = snap.data();
+    if(d.loadDates)   { loadDates   = d.loadDates;   try{localStorage.setItem('v2_loadDates',   JSON.stringify(loadDates));}catch{} }
+    if(d.doneFlags)   { doneFlags   = d.doneFlags;   try{localStorage.setItem('v2_doneFlags',   JSON.stringify(doneFlags));}catch{} }
+    if(d.monthDone)   { monthDone   = d.monthDone;   try{localStorage.setItem('v2_monthDone',   JSON.stringify(monthDone));}catch{} }
+    if(d.maintDone)   { maintDone   = d.maintDone;   try{localStorage.setItem('v2_maintDone',   JSON.stringify(maintDone));}catch{} }
+    if(d.biDone)      { biDone      = d.biDone;      try{localStorage.setItem('v2_biDone',      JSON.stringify(biDone));}catch{} }
+    if(d.historyData) { historyData = d.historyData; try{localStorage.setItem('v2_historyData', JSON.stringify(historyData));}catch{} }
+    if(d.dayMemos)    { dayMemos    = d.dayMemos;    try{localStorage.setItem('v2_dayMemos',    JSON.stringify(dayMemos));}catch{} }
+    if(d.docDone)     { docDone     = d.docDone;     try{localStorage.setItem('v2_docDone',     JSON.stringify(docDone));}catch{} }
+    if(window.renderTable)   window.renderTable();
+    if(window.renderMonthly) window.renderMonthly();
+    if(window.renderHistory) window.renderHistory();
+    const ind = document.getElementById('sync-indicator');
+    if(ind){ ind.textContent='🟢 동기화됨'; ind.style.color='#00c9a7'; }
+  }, function(err) {
+    console.error(err);
+    const ind = document.getElementById('sync-indicator');
+    if(ind){ ind.textContent='🔴 오프라인'; ind.style.color='#ef4444'; }
+  });
+</script>
+<style>
+  :root {
+    --navy:#0f2744; --navy2:#1a3a5c; --blue:#1e6fbf;
+    --accent:#00c9a7; --warn:#f59e0b; --danger:#ef4444;
+    --ok:#22c55e; --bg:#f0f4f8; --card:#ffffff;
+    --text:#1e293b; --muted:#64748b; --border:#e2e8f0;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+  header{background:linear-gradient(135deg,var(--navy),var(--navy2));color:#fff;padding:20px 24px;position:sticky;top:0;z-index:100;box-shadow:0 4px 20px rgba(0,0,0,.25);}
+  header h1{font-size:1.2rem;font-weight:700;}
+  header p{font-size:.75rem;color:#94b8d8;margin-top:2px;}
+  .header-row{display:flex;align-items:center;justify-content:space-between;gap:12px;}
+  .badge{background:var(--accent);color:#fff;font-size:.7rem;font-weight:700;padding:3px 10px;border-radius:20px;}
+
+  .tabs{display:flex;background:var(--navy);padding:0 24px;overflow-x:auto;}
+  .tab{padding:11px 18px;font-size:.82rem;font-weight:500;color:#94b8d8;cursor:pointer;border-bottom:3px solid transparent;transition:.2s;white-space:nowrap;}
+  .tab:hover{color:#fff;}
+  .tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+
+  main{padding:20px 24px;max-width:1100px;margin:0 auto;}
+  .panel{display:none;}
+  .panel.active{display:block;}
+
+  .card{background:var(--card);border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.07);overflow:hidden;margin-bottom:18px;}
+  .card-header{background:linear-gradient(90deg,var(--navy),var(--navy2));color:#fff;padding:12px 18px;font-size:.88rem;font-weight:600;}
+
+  .summary-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:18px;}
+  .sum-card{background:var(--card);border-radius:10px;padding:14px 16px;box-shadow:0 2px 8px rgba(0,0,0,.06);border-left:4px solid var(--border);}
+  .sum-card.c-ok{border-left-color:var(--ok);}
+  .sum-card.c-warn{border-left-color:var(--warn);}
+  .sum-card.c-danger{border-left-color:var(--danger);}
+  .sum-card.c-total{border-left-color:var(--blue);}
+  .sum-val{font-size:1.7rem;font-weight:700;color:var(--navy);}
+  .sum-label{font-size:.72rem;color:var(--muted);margin-top:2px;}
+
+  .tip{background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px 14px;font-size:.78rem;color:#1e40af;margin-bottom:16px;}
+
+  table{width:100%;border-collapse:collapse;}
+  th{background:#f8fafc;color:var(--muted);font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.4px;padding:9px 12px;border-bottom:2px solid var(--border);text-align:left;white-space:nowrap;}
+  td{padding:10px 12px;border-bottom:1px solid var(--border);font-size:.82rem;vertical-align:middle;}
+  tr:last-child td{border-bottom:none;}
+  tr:hover td{background:#f8fafc;}
+  tr.row-danger td{background:#fff0f0 !important;}
+  tr.row-warn td{background:#fffbeb !important;}
+  tr.row-danger:hover td{background:#ffd6d6 !important;}
+  tr.row-warn:hover td{background:#fef3c7 !important;}
+
+  .reagent-name{font-weight:700;color:var(--navy);font-size:.88rem;}
+  .acn{font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--muted);}
+  .cycle-badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:.72rem;font-weight:600;background:#dbeafe;color:#1d4ed8;}
+
+  .date-input{border:1.5px solid var(--border);border-radius:7px;padding:5px 8px;font-size:.8rem;font-family:'Noto Sans KR',sans-serif;color:var(--text);width:135px;outline:none;transition:.2s;}
+  .date-input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(30,111,191,.15);}
+
+  .status{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:.75rem;font-weight:600;}
+  .status.ok{background:#dcfce7;color:#15803d;}
+  .status.warn{background:#fef9c3;color:#a16207;}
+  .status.danger{background:#fee2e2;color:#b91c1c;}
+  .status.none{background:#f1f5f9;color:#94a3b8;}
+  .dot{width:6px;height:6px;border-radius:50%;}
+  .ok .dot{background:#22c55e;} .warn .dot{background:#f59e0b;} .danger .dot{background:#ef4444;} .none .dot{background:#cbd5e1;}
+
+  .check-btn{border:none;background:none;cursor:pointer;font-size:1.1rem;padding:3px 6px;border-radius:6px;transition:.15s;}
+  .check-btn:hover{background:#f1f5f9;}
+
+  /* 월별 */
+  .monthly-wrap{overflow-x:auto;}
+  .month-cell{border-radius:5px;padding:3px 2px;font-size:.72rem;font-weight:600;cursor:pointer;transition:.15s;text-align:center;}
+  .month-cell.scheduled{background:#fef9c3;color:#a16207;}
+  .month-cell.done-month{background:#dcfce7;color:#15803d;}
+  .month-cell:not(.scheduled):not(.done-month){color:#cbd5e1;}
+
+  /* 이력 */
+  .history-list{padding:14px 18px;}
+  .history-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;margin-bottom:7px;background:#f8fafc;border:1px solid var(--border);font-size:.8rem;}
+  .hi-name{font-weight:700;color:var(--navy);min-width:75px;}
+  .hi-date{color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:.75rem;}
+  .hi-by{margin-left:auto;color:var(--muted);font-size:.75rem;}
+  .del-btn{border:none;background:none;cursor:pointer;color:#ef4444;opacity:.6;font-size:.82rem;}
+  .del-btn:hover{opacity:1;}
+
+  .add-row{display:flex;gap:8px;flex-wrap:wrap;padding:14px 18px;border-top:1px solid var(--border);}
+  .add-row select,.add-row input{border:1.5px solid var(--border);border-radius:7px;padding:6px 9px;font-size:.8rem;font-family:'Noto Sans KR',sans-serif;color:var(--text);outline:none;transition:.2s;}
+  .add-row select:focus,.add-row input:focus{border-color:var(--blue);}
+  .btn-add{background:var(--blue);color:#fff;border:none;border-radius:7px;padding:6px 16px;font-size:.8rem;font-family:'Noto Sans KR',sans-serif;font-weight:600;cursor:pointer;}
+  .btn-add:hover{background:#1558a0;}
+
+  /* Maintenance */
+  .maint-wrap{padding:16px 18px;overflow-x:auto;}
+  .maint-table{min-width:520px;}
+  .maint-table th{font-size:.7rem;}
+  .week-label{font-size:.68rem;font-weight:400;color:#94a3b8;display:block;}
+  .type-w{background:#dbeafe;color:#1d4ed8;}
+  .type-b{background:#fae8ff;color:#7e22ce;}
+
+  @media(max-width:600px){
+    header,main{padding-left:14px;padding-right:14px;}
+    .tabs{padding:0 14px;}
+    .date-input{width:110px;font-size:.72rem;padding:4px 4px;}
+    .add-row{flex-direction:column;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-row">
+    <div>
+      <h1>🧪 Reagent On-Board Stability</h1>
+      <p>cobas c503 · On-board 안정성 기준 · 장착일 기준 자동 계산</p>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <button onclick="exportData()" style="background:#00c9a7;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:.78rem;font-family:'Noto Sans KR',sans-serif;font-weight:600;cursor:pointer;">💾 데이터 저장</button>
+      <label style="background:#f59e0b;color:#fff;border-radius:8px;padding:6px 14px;font-size:.78rem;font-family:'Noto Sans KR',sans-serif;font-weight:600;cursor:pointer;">📂 불러오기<input type="file" accept=".json" onchange="importData(event)" style="display:none;"></label>
+      <button onclick="resetData()" style="background:#ef4444;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:.78rem;font-family:'Noto Sans KR',sans-serif;font-weight:600;cursor:pointer;">🗑️ 초기화</button>
+      <span class="badge">8종 관리</span>
+      <span id="sync-indicator" style="font-size:.75rem;color:#94b8d8;">⏳ 연결 중...</span>
+    </div>
+  </div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab(this,'overview')">📋 교체주기 개요</div>
+  <div class="tab" onclick="switchTab(this,'monthly')">📄 월별 결재서류</div>
+  <div class="tab" onclick="switchTab(this,'maintenance')">🔧 Maintenance</div>
+  <div class="tab" onclick="switchTab(this,'history')">📝 교체 이력</div>
+</div>
+
+<main>
+
+<!-- 탭1 -->
+<div class="panel active" id="tab-overview">
+  <div class="tip">💡 장착일을 입력하면 교체 예정일이 자동 계산됩니다. 데이터는 브라우저에 자동 저장됩니다.</div>
+  <div style="display:flex;gap:10px;margin-bottom:16px;">
+    <button id="btn-main" onclick="switchDevice('main')" style="background:var(--blue);color:#fff;border:none;border-radius:20px;padding:7px 18px;font-size:.82rem;font-weight:600;cursor:pointer;">🔵 Main 장비</button>
+    <button id="btn-sub"  onclick="switchDevice('sub')"  style="background:#e2e8f0;color:var(--text);border:none;border-radius:20px;padding:7px 18px;font-size:.82rem;font-weight:600;cursor:pointer;">🟢 Sub 장비</button>
+  </div>
+  <div class="summary-row" id="sum-row"></div>
+  <div class="card">
+    <div id="r-table-header" class="card-header">Reagent On-Board Stability 현황 — Main 장비</div>
+    <div style="overflow-x:auto;">
+      <table>
+        <thead><tr>
+          <th>시약명</th><th>Period</th><th>안정성</th>
+          <th>장착일</th><th>교체 예정일</th><th>D-day</th><th>상태</th><th>완료</th>
+        </tr></thead>
+        <tbody id="r-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- 탭2 -->
+<div class="panel" id="tab-monthly">
+  <div class="tip">💡 서류 제출 완료 시 ✔ 클릭하세요. 매월 서류와 분기별 서류로 구분됩니다.</div>
+
+  <div class="card">
+    <div class="card-header">📋 매월 결재서류</div>
+    <div style="overflow-x:auto;">
+      <table id="doc-monthly-table" style="min-width:900px;"></table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">📋 반기별 결재서류 (6월 · 12월)</div>
+    <div style="overflow-x:auto;">
+      <table id="doc-biannual-table" style="min-width:600px;"></table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">📋 LOT 변경 시 결재서류</div>
+    <div style="overflow-x:auto;">
+      <table id="doc-lot-table" style="min-width:600px;"></table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">🔬 외부정도관리 결재서류</div>
+    <div class="tip" style="margin:0 0 10px;">💡 연간 차수(1차~8차) 기준으로 체크하세요.</div>
+    <div style="overflow-x:auto;">
+      <table id="doc-eqc-table" style="min-width:900px;"></table>
+    </div>
+  </div>
+</div>
+
+<!-- 탭3 -->
+<div class="panel" id="tab-maintenance">
+  <div class="tip">🔧 날짜를 클릭하면 완료(✔) 표시됩니다. Weekly=매주 금요일 / Bi-Weekly=격주 금요일 / Monthly=매월</div>
+  <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap;">
+    <button onclick="prevMaintMonth()" style="background:var(--navy);color:#fff;border:none;border-radius:8px;padding:7px 16px;font-size:.85rem;cursor:pointer;">◀ 이전달</button>
+    <span id="maint-cal-title" style="font-size:1.1rem;font-weight:700;color:var(--navy);min-width:120px;text-align:center;"></span>
+    <button onclick="nextMaintMonth()" style="background:var(--navy);color:#fff;border:none;border-radius:8px;padding:7px 16px;font-size:.85rem;cursor:pointer;">다음달 ▶</button>
+  </div>
+
+  <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+    <span style="display:inline-flex;align-items:center;gap:5px;font-size:.78rem;"><span style="width:12px;height:12px;border-radius:3px;background:#dc2626;display:inline-block;"></span>🔧 PM 예약 (1/7·4/7·7/7·10/7)</span>
+    <span style="display:inline-flex;align-items:center;gap:5px;font-size:.78rem;"><span style="width:12px;height:12px;border-radius:3px;background:#7c3aed;display:inline-block;"></span>AMR·Carry over·장비상관성 (6월/12월 첫째 수요일)</span>
+    <span style="display:inline-flex;align-items:center;gap:5px;font-size:.78rem;"><span style="width:12px;height:12px;border-radius:3px;background:#0891b2;display:inline-block;"></span>외부정도관리 냉장</span>
+    <span style="display:inline-flex;align-items:center;gap:5px;font-size:.78rem;"><span style="width:12px;height:12px;border-radius:3px;background:#1d4ed8;display:inline-block;"></span>외부정도관리 냉동</span>
+    <span style="display:inline-flex;align-items:center;gap:5px;font-size:.78rem;"><span style="width:12px;height:12px;border-radius:3px;background:#06b6d4;display:inline-block;"></span>Weekly Cal, RF QC(Main/Sub) (매주 월요일)</span>
+    <span style="display:inline-flex;align-items:center;gap:5px;font-size:.78rem;"><span style="width:12px;height:12px;border-radius:3px;background:#10b981;display:inline-block;"></span>All Cal (마지막 월요일)</span>
+    <span style="display:inline-flex;align-items:center;gap:5px;font-size:.78rem;"><span style="width:12px;height:12px;border-radius:3px;background:#3b82f6;display:inline-block;"></span>Weekly (매주 금요일)</span>
+    <span style="display:inline-flex;align-items:center;gap:5px;font-size:.78rem;"><span style="width:12px;height:12px;border-radius:3px;background:#8b5cf6;display:inline-block;"></span>Bi-Weekly (격주 금요일)</span>
+    <span style="display:inline-flex;align-items:center;gap:5px;font-size:.78rem;"><span style="width:12px;height:12px;border-radius:3px;background:#f59e0b;display:inline-block;"></span>Monthly (매월 마지막 금요일)</span>
+    <span style="display:inline-flex;align-items:center;gap:5px;font-size:.78rem;"><span style="width:12px;height:12px;border-radius:3px;background:#e879f9;display:inline-block;"></span>면역QC (월·수·금)</span>
+    <span style="display:inline-flex;align-items:center;gap:5px;font-size:.78rem;"><span style="width:12px;height:12px;border-radius:3px;background:#fb923c;display:inline-block;"></span>NX10QC (월·수·금)</span>
+  </div>
+
+  <div class="card">
+    <div class="card-header">🔧 cobas pro Maintenance 캘린더</div>
+    <div id="maint-cal-wrap" style="padding:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;"></div>
+  </div>
+</div>
+
+<!-- 탭4 -->
+<div class="panel" id="tab-history">
+  <div class="card">
+    <div class="card-header">교체 이력 기록</div>
+    <div class="add-row">
+      <select id="h-reagent"><option value="">시약 선택</option></select>
+      <input type="date" id="h-date">
+      <input type="text" id="h-by" placeholder="담당자" style="width:90px;">
+      <input type="text" id="h-note" placeholder="비고" style="flex:1;min-width:100px;">
+      <button class="btn-add" onclick="addHistory()">+ 추가</button>
+    </div>
+    <div class="history-list" id="h-list"></div>
+  </div>
+</div>
+
+</main>
+
+<!-- 날짜 클릭 모달 -->
+<div id="day-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:999;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:16px;padding:24px;width:90%;max-width:420px;max-height:85vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.2);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <h3 id="modal-title" style="font-size:1rem;font-weight:700;color:#0f2744;"></h3>
+      <button onclick="closeModal()" style="border:none;background:none;font-size:1.3rem;cursor:pointer;color:#64748b;">✕</button>
+    </div>
+    <!-- 고정 일정 체크 -->
+    <div id="modal-tasks" style="margin-bottom:14px;"></div>
+    <!-- 기타 메모 -->
+    <div style="margin-bottom:12px;">
+      <div style="font-size:.78rem;font-weight:600;color:#64748b;margin-bottom:6px;">📝 기타 일정 메모</div>
+      <textarea id="modal-memo" rows="3" placeholder="기타 일정을 입력하세요..."
+        style="width:100%;border:1.5px solid #e2e8f0;border-radius:8px;padding:8px 10px;font-size:.82rem;font-family:'Noto Sans KR',sans-serif;resize:none;outline:none;"></textarea>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button onclick="closeModal()" style="border:1.5px solid #e2e8f0;background:#fff;border-radius:8px;padding:7px 16px;font-size:.82rem;cursor:pointer;font-family:'Noto Sans KR',sans-serif;">취소</button>
+      <button onclick="saveModal()" style="background:#1e6fbf;color:#fff;border:none;border-radius:8px;padding:7px 18px;font-size:.82rem;font-weight:600;cursor:pointer;font-family:'Noto Sans KR',sans-serif;">저장</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── 데이터 정의 ──────────────────────────────────────
+const REAGENTS_MAIN = [
+  {id:'sms',  name:'SMS',               acn:'08063478190', days:84,  cycle:'12주'},
+  {id:'sccs', name:'SCCS',              acn:'08463093190', days:7,   cycle:'1주'},
+  {id:'nacl', name:'NaCl',              acn:'08063494190', days:182, cycle:'26주'},
+  {id:'a1cd', name:'A1CD',              acn:'08463107190', days:28,  cycle:'4주'},
+  {id:'acid', name:'Acid Wash(Black)',  acn:'08302723190', days:84,  cycle:'12주'},
+  {id:'pm',      name:'정규 PM',            acn:'—', days:90,  cycle:'3개월'},
+  {id:'corr',    name:'장비 상관성 비교평가', acn:'—', days:180, cycle:'6개월'},
+  {id:'amr_co',  name:'AMR/Carry Over',   acn:'—', days:180, cycle:'6개월'},
+  {id:'cell_lamp_main', name:'Cell/Lamp 교체', acn:'—', days:60,  cycle:'2개월'},
+];
+const REAGENTS_SUB = [
+  {id:'sub_sms',      name:'SMS',               acn:'08063478190', days:84,  cycle:'12주'},
+  {id:'sub_nacl',     name:'NaCl',              acn:'08063494190', days:182, cycle:'26주'},
+  {id:'sub_acid',     name:'Acid Wash(Black)',  acn:'08302723190', days:84,  cycle:'12주'},
+  {id:'sub_pm',       name:'정규 PM',            acn:'—', days:90,  cycle:'3개월'},
+  {id:'sub_corr',     name:'장비 상관성 비교평가', acn:'—', days:180, cycle:'6개월'},
+  {id:'sub_amr_co',   name:'AMR/Carry Over',   acn:'—', days:180, cycle:'6개월'},
+  {id:'sub_cell_lamp',name:'Cell/Lamp 교체',    acn:'—', days:60,  cycle:'2개월'},
+];
+let currentDevice = 'main';
+let REAGENTS = REAGENTS_MAIN;
+
+const MONTHS = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+
+const MAINT_ITEMS = {
+  weekly:   [{id:'w1', name:'cobas pro', label:'Weekly'}],
+  biweekly: [{id:'b1', name:'cobas pro', label:'Bi-Weekly'}],
+  monthly:  [{id:'m1', name:'cobas pro', label:'Monthly'}],
+};
+
+// 금요일 목록 (2026년 3월부터 8주)
+const FRI = ['3/6','3/13','3/20','3/27','4/3','4/10','4/17','4/24'];
+const FRI_TYPE = ['W','B','W','B','W','B','W','B']; // W=weekly, B=biweekly
+const BI_FRI = FRI.filter((_,i)=>FRI_TYPE[i]==='B'); // bi-weekly 날짜만
+
+// ── 저장소 (Firestore 기반) ─────────────────────────
+function ls_load(key, def) {
+  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : def; } catch { return def; }
+}
+function ls_save(key, val) {
+  // localStorage 백업
+  try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
+  // Firestore에 전체 데이터 저장
+  if (window.fs_save) {
+    window.fs_save({
+      loadDates, doneFlags, monthDone, maintDone,
+      biDone, historyData, dayMemos, docDone
+    });
+  }
+}
+
+let loadDates   = ls_load('v2_loadDates', {});
+let doneFlags   = ls_load('v2_doneFlags', {});
+let monthDone   = ls_load('v2_monthDone', {});
+let maintDone   = ls_load('v2_maintDone', {});
+let biDone      = ls_load('v2_biDone', {});
+let historyData = ls_load('v2_historyData', []);
+
+// PM 기본 장착일
+if (!loadDates['pm']) { loadDates['pm'] = '2025-01-29'; }
+
+// ── 유틸 ────────────────────────────────────────────
+function addDays(ds, n) {
+  if (!ds) return '';
+  const d = new Date(ds); d.setDate(d.getDate()+n);
+  return d.toISOString().slice(0,10);
+}
+function today() { return new Date().toISOString().slice(0,10); }
+function diffDays(a, b) { return Math.round((new Date(b)-new Date(a))/86400000); }
+
+// ── 탭 전환 ──────────────────────────────────────────
+function switchTab(el, name) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
+  if (name==='maintenance') renderMaintenance();
+}
+
+// ── 요약 ─────────────────────────────────────────────
+function renderSummary() {
+  let ok=0, warn=0, danger=0, none=0;
+  REAGENTS.forEach(r => {
+    if (!loadDates[r.id]) { none++; return; }
+    if (doneFlags[r.id])  { ok++;   return; }
+    const d = diffDays(today(), addDays(loadDates[r.id], r.days));
+    if (d<0) danger++; else if (d<=7) warn++; else ok++;
+  });
+  document.getElementById('sum-row').innerHTML =
+    `<div class="sum-card c-total"><div class="sum-val">${REAGENTS.length}</div><div class="sum-label">전체</div></div>
+     <div class="sum-card c-ok"><div class="sum-val">${ok}</div><div class="sum-label">정상</div></div>
+     <div class="sum-card c-warn"><div class="sum-val">${warn}</div><div class="sum-label">7일 이내</div></div>
+     <div class="sum-card c-danger"><div class="sum-val">${danger}</div><div class="sum-label">기간 초과</div></div>`;
+}
+
+// ── 교체주기 테이블 ──────────────────────────────────
+function switchDevice(dev) {
+  currentDevice = dev;
+  REAGENTS = dev === 'main' ? REAGENTS_MAIN : REAGENTS_SUB;
+  document.getElementById('btn-main').style.background = dev==='main' ? 'var(--blue)' : '#e2e8f0';
+  document.getElementById('btn-main').style.color = dev==='main' ? '#fff' : 'var(--text)';
+  document.getElementById('btn-sub').style.background = dev==='sub' ? '#22c55e' : '#e2e8f0';
+  document.getElementById('btn-sub').style.color = dev==='sub' ? '#fff' : 'var(--text)';
+  document.getElementById('r-table-header').textContent = 
+    'Reagent On-Board Stability 현황 — ' + (dev==='main' ? 'Main 장비' : 'Sub 장비');
+  renderTable();
+}
+
+function renderTable() {
+  const tb = document.getElementById('r-tbody');
+  tb.innerHTML = '';
+  REAGENTS.forEach(r => {
+    const ld  = loadDates[r.id]||'';
+    const due = ld ? addDays(ld, r.days) : '';
+    const d   = due ? diffDays(today(), due) : null;
+    const done= doneFlags[r.id]||false;
+    let st, dd;
+    if (done)       { st=`<span class="status ok"><span class="dot"></span>완료</span>`;       dd=`<span style="color:var(--ok);font-weight:600;">✔</span>`; }
+    else if (d===null){ st=`<span class="status none"><span class="dot"></span>미입력</span>`; dd=`<span style="color:#cbd5e1;">—</span>`; }
+    else if (d<0)   { st=`<span class="status danger"><span class="dot"></span>기간초과</span>`;dd=`<span style="color:var(--danger);font-weight:700;">D+${Math.abs(d)}</span>`; }
+    else if (d<=7)  { st=`<span class="status warn"><span class="dot"></span>임박</span>`;      dd=`<span style="color:var(--warn);font-weight:700;">D-${d}</span>`; }
+    else            { st=`<span class="status ok"><span class="dot"></span>정상</span>`;         dd=`<span style="color:var(--ok);font-weight:600;">D-${d}</span>`; }
+    let rowCls = '';
+    if (!done && d !== null) {
+      if (d < 0)       rowCls = 'row-danger';
+      else if (d <= 7) rowCls = 'row-warn';
+    }
+    const tr = document.createElement('tr');
+    if (rowCls) tr.className = rowCls;
+    tr.innerHTML =
+      `<td><div class="reagent-name">${r.name}</div><div class="acn">${r.acn}</div></td>
+       <td><span class="cycle-badge">${r.cycle}</span></td>
+       <td style="color:var(--muted);">${r.days}일</td>
+       <td><input type="date" class="date-input" value="${ld}" onchange="setLoad('${r.id}',this.value)"></td>
+       <td style="font-family:'JetBrains Mono',monospace;font-size:.78rem;">${due||'—'}</td>
+       <td>${dd}</td><td>${st}</td>
+       <td><button class="check-btn" onclick="toggleDone('${r.id}')">${done?'✅':'⬜'}</button></td>`;
+    tb.appendChild(tr);
+  });
+  renderSummary();
+}
+
+function setLoad(id, val) {
+  loadDates[id]=val; doneFlags[id]=false;
+  ls_save('v2_loadDates',loadDates); ls_save('v2_doneFlags',doneFlags);
+  renderTable(); renderMonthly();
+}
+function toggleDone(id) {
+  doneFlags[id]=!doneFlags[id]; ls_save('v2_doneFlags',doneFlags); renderTable();
+}
+
+// ── 월별 일정표 ──────────────────────────────────────
+// 캘린더 상태
+// ── 결재서류 데이터 ──────────────────────────────────
+const MONTHS_SHORT = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+
+// 매월 서류
+const MONTHLY_DOCS = [
+  'Cobas pro Main 장비점검표 (c801 포함)',
+  'Cobas pro Sub 장비점검표',
+  'Cobas b221 장비점검표',
+  'cobas pro Main 내부정도관리',
+  'cobas pro Sub 내부정도관리',
+  'Ammonia(NH3) NX10N 내부정도관리',
+  'cobas b221 내부정도관리',
+  'TAT 대장',
+  '부적합검체 대장',
+  'R/O 기계수 수질검사',
+  'Calibration 기록부',
+];
+
+// 반기별 서류 (6월, 12월)
+const BIANNUAL_DOCS = [
+  'AMR',
+  'Carry over',
+  '장비 상관성 비교평가',
+  '자동계산분목 검증평가',
+];
+
+// LOT 변경 시 서류
+const LOT_DOCS = [
+  'Cobas pro Main parallel',
+  'Cobas pro Sub parallel',
+  'Cobas pro c801 parallel',
+];
+
+// 외부정도관리 서류 (차수별 8차) - 화학파트 담당 9개
+const EQC_DOCS = [
+  '혈액가스검사 외부정도관리',
+  '일반화학검사 외부정도관리',
+  '단백면역검사 외부정도관리',
+  '호르몬검사1 외부정도관리',
+  '호르몬검사2 외부정도관리',
+  '호르몬검사3 외부정도관리',
+  '종양표지자검사2 외부정도관리',
+  '정확도기반 Creatinine검사 외부정도관리',
+  '정확도기반 HbA1c검사 외부정도관리',
+];
+
+let docDone = ls_load('v2_docDone', {}); // {'docId-mo': true}
+
+function renderMonthly() {
+  renderDocTable('doc-monthly-table', MONTHLY_DOCS, 'monthly', 12);
+  renderBiAnnualTable();
+  renderLotTable();
+  renderEqcTable();
+}
+
+function renderBiAnnualTable() {
+  const cols = ['6월','12월'];
+  let h = '<thead><tr>';
+  h += '<th style="min-width:220px;text-align:left;padding-left:14px;">서류명</th>';
+  cols.forEach(l => h+=`<th style="min-width:80px;text-align:center;">${l}</th>`);
+  h += '</tr></thead><tbody>';
+  BIANNUAL_DOCS.forEach((doc, di) => {
+    const bg = di%2===0?'#ffffff':'#f8fafc';
+    h += `<tr><td style="font-weight:600;color:#0f2744;padding:10px 14px;background:${bg};">${doc}</td>`;
+    for(let ci=0; ci<2; ci++){
+      const key = 'biannual-'+di+'-'+ci;
+      const done = docDone[key];
+      h += `<td style="text-align:center;background:${done?'#dcfce7':bg};padding:8px 4px;">
+        <button class="check-btn" onclick="toggleDoc('${key}')" style="font-size:1rem;">${done?'✅':'⬜'}</button>
+      </td>`;
+    }
+    h += '</tr>';
+  });
+  h += '</tbody>';
+  document.getElementById('doc-biannual-table').innerHTML = h;
+}
+
+function renderLotTable() {
+  let h = '<thead><tr>';
+  h += '<th style="min-width:220px;text-align:left;padding-left:14px;">서류명</th>';
+  h += '<th style="min-width:80px;text-align:center;">완료</th>';
+  h += '</tr></thead><tbody>';
+  LOT_DOCS.forEach((doc, di) => {
+    const bg = di%2===0?'#ffffff':'#f8fafc';
+    const key = 'lot-'+di;
+    const done = docDone[key];
+    h += `<tr>
+      <td style="font-weight:600;color:#0f2744;padding:10px 14px;background:${bg};">${doc}</td>
+      <td style="text-align:center;background:${done?'#dcfce7':bg};padding:8px 4px;">
+        <button class="check-btn" onclick="toggleDoc('${key}')" style="font-size:1rem;">${done?'✅':'⬜'}</button>
+      </td>
+    </tr>`;
+  });
+  h += '</tbody>';
+  document.getElementById('doc-lot-table').innerHTML = h;
+}
+
+function renderEqcTable() {
+  // 일반화학검사만 4차, 나머지는 2차
+  let h = '<thead><tr>';
+  h += '<th style="min-width:220px;text-align:left;padding-left:14px;">검사항목</th>';
+  ['1차','2차','3차','4차'].forEach(l => h+=`<th style="min-width:60px;text-align:center;">${l}</th>`);
+  h += '</tr></thead><tbody>';
+  EQC_DOCS.forEach((doc, di) => {
+    const bg = di%2===0?'#ffffff':'#f8fafc';
+    const maxCols = doc.includes('일반화학') ? 4 : 2;
+    h += `<tr>`;
+    h += `<td style="font-weight:600;color:#0f2744;padding:10px 14px;background:${bg};">${doc}</td>`;
+    for(let ci=0; ci<4; ci++){
+      if(ci >= maxCols) {
+        h += `<td style="background:${bg};"></td>`;
+      } else {
+        const key = 'eqc-'+di+'-'+ci;
+        const done = docDone[key];
+        h += `<td style="text-align:center;background:${done?'#dcfce7':bg};padding:8px 4px;">
+          <button class="check-btn" onclick="toggleDoc('${key}')" style="font-size:1rem;">${done?'✅':'⬜'}</button>
+        </td>`;
+      }
+    }
+    h += '</tr>';
+  });
+  h += '</tbody>';
+  document.getElementById('doc-eqc-table').innerHTML = h;
+}
+
+function renderDocTable(tableId, docs, type, cols) {
+  const isQuarter = type==='quarter';
+  const colLabels = isQuarter
+    ? ['1분기 (1~3월)','2분기 (4~6월)','3분기 (7~9월)','4분기 (10~12월)']
+    : MONTHS_SHORT;
+
+  let h = '<thead><tr>';
+  h += '<th style="min-width:200px;text-align:left;padding-left:14px;">서류명</th>';
+  colLabels.forEach(l => h+=`<th style="min-width:70px;text-align:center;">${l}</th>`);
+  h += '</tr></thead><tbody>';
+
+  docs.forEach((doc, di) => {
+    const bg = di%2===0?'#ffffff':'#f8fafc';
+    h += `<tr>`;
+    h += `<td style="font-weight:600;color:#0f2744;padding:10px 14px;background:${bg};">${doc}</td>`;
+    for(let ci=0; ci<cols; ci++){
+      const key = type+'-'+di+'-'+ci;
+      const done = docDone[key];
+      h += `<td style="text-align:center;background:${done?'#dcfce7':bg};padding:8px 4px;">
+        <button class="check-btn" onclick="toggleDoc('${key}')" style="font-size:1rem;">${done?'✅':'⬜'}</button>
+      </td>`;
+    }
+    h += '</tr>';
+  });
+  h += '</tbody>';
+  document.getElementById(tableId).innerHTML = h;
+}
+
+function toggleDoc(key){
+  docDone[key]=!docDone[key];
+  ls_save('v2_docDone',docDone);
+  renderMonthly();
+}
+function toggleCalDay(key) {
+  monthDone[key]=!monthDone[key]; ls_save('v2_monthDone',monthDone); renderMonthly();
+}
+function toggleMonth(key, sched) {
+  if (!sched && !monthDone[key]) return;
+  monthDone[key]=!monthDone[key]; ls_save('v2_monthDone',monthDone); renderMonthly();
+}
+
+// ── Maintenance ──────────────────────────────────────
+// ── Maintenance 캘린더 ──────────────────────────────
+let maintCalYear=new Date().getFullYear(), maintCalMonth=new Date().getMonth();
+
+function prevMaintMonth(){maintCalMonth--;if(maintCalMonth<0){maintCalMonth=11;maintCalYear--;}renderMaintenance();}
+function nextMaintMonth(){maintCalMonth++;if(maintCalMonth>11){maintCalMonth=0;maintCalYear++;}renderMaintenance();}
+
+// 외부정도관리 일정 (전역)
+const EQC_PERIODS = [
+  {start:'2026-03-09', end:'2026-03-19', label:'1차', storage:'냉장', items:[
+    '혈액가스검사','일반화학검사','호르몬검사2']},
+  {start:'2026-03-30', end:'2026-04-09', label:'2차', storage:'냉동', items:[
+    '단백면역검사','호르몬검사1','종양표지자검사2','정확도기반 Creatinine']},
+  {start:'2026-04-20', end:'2026-04-30', label:'3차', storage:'냉동', items:[
+    '호르몬검사3','정확도기반 HbA1c']},
+  {start:'2026-05-12', end:'2026-05-22', label:'4차', storage:'냉장', items:[
+    '일반화학검사','호르몬검사2']},
+  {start:'2026-08-31', end:'2026-09-10', label:'5차', storage:'냉장', items:[
+    '일반화학검사','호르몬검사2']},
+  {start:'2026-09-07', end:'2026-09-17', label:'6차', storage:'냉동', items:[
+    '정확도기반 Creatinine','정확도기반 HbA1c']},
+  {start:'2026-10-20', end:'2026-10-30', label:'7차', storage:'냉장', items:[
+    '혈액가스 현장검사','호르몬검사2','종양표지자검사2']},
+  {start:'2026-11-02', end:'2026-11-12', label:'8차', storage:'냉동', items:[
+    '단백면역검사','호르몬검사1']},
+];
+
+// 마지막 특정 요일 계산
+function getLastWeekday(y, m, dow) {
+  const lastDay=new Date(y,m+1,0).getDate();
+  for(let d=lastDay;d>=1;d--){
+    if(new Date(y,m,d).getDay()===dow) return d;
+  }
+  return -1;
+}
+
+// 날짜별 일정 타입 계산 (전역 함수)
+function getMaintTypes(year, mo, day) {
+  const d = new Date(year, mo, day);
+  const dow = d.getDay();
+  const types = [];
+  const lastFri = getLastWeekday(year, mo, 5);
+  const lastMon = getLastWeekday(year, mo, 1);
+  const dateStr = year+'-'+String(mo+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+
+  // PM 예약: 3개월 주기 (1/7, 4/7, 7/7, 10/7)
+  const pmDates = [{mo:0,d:7},{mo:3,d:7},{mo:6,d:7},{mo:9,d:7}];
+  if(pmDates.some(p=>p.mo===mo && p.d===day))
+    types.push({label:'🔧 PM 예약', color:'#dc2626', id:'pm'});
+
+  // 반기별: 6월/12월 첫째 수요일
+  if((mo===5||mo===11) && dow===3 && day<=7){
+    types.push({label:'AMR', color:'#7c3aed', id:'amr'});
+    types.push({label:'Carry over', color:'#db2777', id:'carryover'});
+    types.push({label:'장비상관성비교평가', color:'#0369a1', id:'correlation'});
+  }
+
+  // 외부정도관리 (시작일/마감일만)
+  EQC_PERIODS.forEach(p=>{
+    const sc = p.storage==='냉장'?'#0891b2':'#1d4ed8';
+    if(dateStr===p.start){
+      if(p.items.length===0){
+        types.push({label:'외부QC '+p.label+' (해당없음)', color:'#94a3b8', id:'eqc-s-'+p.label});
+      } else {
+        p.items.forEach((item,ii)=>
+          types.push({label:'[외부QC '+p.label+'] '+item, color:sc, id:'eqc-'+p.label+'-'+ii})
+        );
+        types.push({label:'마감: '+p.end, color:'#475569', id:'eqc-due-'+p.label});
+      }
+    } else if(dateStr===p.end && p.items.length>0){
+      types.push({label:'외부QC '+p.label+' 마감', color:'#dc2626', id:'eqc-e-'+p.label});
+    }
+  });
+
+  // 매주 월·수·금: 면역QC, NX10QC
+  if(dow===1||dow===3||dow===5){
+    types.push({label:'면역QC', color:'#e879f9', id:'immuneqc'});
+    types.push({label:'NX10QC', color:'#fb923c', id:'nx10qc'});
+  }
+
+  // All Cal / Weekly Cal
+  if(day===lastMon) types.push({label:'All Cal', color:'#10b981', id:'allcal'});
+  else if(dow===1) {
+    types.push({label:'Weekly Cal, RF QC(Main)', color:'#06b6d4', id:'wcal_main'});
+    types.push({label:'Weekly Cal, RF QC(Sub)', color:'#0284c7', id:'wcal_sub'});
+  }
+
+  // Monthly
+  if(day===lastFri) types.push({label:'Monthly', color:'#f59e0b', id:'mo'});
+
+  // 금요일
+  if(dow===5){
+    let fc=0;
+    for(let dd=1;dd<=day;dd++){if(new Date(year,mo,dd).getDay()===5)fc++;}
+    if(fc%2===0) types.push({label:'Bi-Weekly', color:'#8b5cf6', id:'bi'});
+    types.push({label:'Weekly', color:'#3b82f6', id:'wk'});
+  }
+  return types;
+}
+
+function renderMaintenance() {
+  const year=maintCalYear, mo=maintCalMonth;
+  document.getElementById('maint-cal-title').textContent=year+'년 '+(mo+1)+'월';
+
+  const firstDay=new Date(year,mo,1).getDay();
+  const daysInMonth=new Date(year,mo+1,0).getDate();
+  const todayStr=today();
+
+  const days=['일','월','화','수','목','금','토'];
+  let h='<div style="min-width:560px;max-width:560px;">';
+  h+='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:4px;">';
+  days.forEach((d,i)=>{
+    const col=i===0?'#ef4444':i===6?'#3b82f6':'var(--muted)';
+    h+=`<div style="text-align:center;font-size:.75rem;font-weight:700;color:${col};padding:4px 0;">${d}</div>`;
+  });
+  h+='</div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;">';
+
+  for(let i=0;i<firstDay;i++)
+    h+='<div style="height:90px;background:#f8fafc;border-radius:6px;"></div>';
+
+  for(let day=1;day<=daysInMonth;day++){
+    const dow=(firstDay+day-1)%7;
+    const dateStr=year+'-'+String(mo+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+    const isToday=dateStr===todayStr;
+    const types=getMaintTypes(year,mo,day);
+
+    const cellBg=isToday?'#eff6ff':'#ffffff';
+    const border=isToday?'2px solid #3b82f6':'1px solid var(--border)';
+    const dayColor=dow===0?'#ef4444':dow===6?'#3b82f6':'var(--text)';
+
+    h+=`<div style="height:90px;background:${cellBg};border:${border};border-radius:6px;padding:2px;cursor:pointer;overflow:hidden;" onclick="openDayModal('${dateStr}')">`;
+    h+=`<div style="font-size:.78rem;font-weight:700;color:${dayColor};">${day}${isToday?' <span style="font-size:.58rem;background:#3b82f6;color:#fff;border-radius:3px;padding:0 3px;">오늘</span>':''}</div>`;
+
+    // 모든 항목 표시 (EQC는 차수 대표만, 일반은 그대로)
+    const eqcStarts=types.filter(t=>t.id.startsWith('eqc-')&&!t.id.startsWith('eqc-e-')&&!t.id.startsWith('eqc-due-'));
+    const eqcEnd=types.filter(t=>t.id.startsWith('eqc-e-'));
+    const normalTypes=types.filter(t=>!t.id.startsWith('eqc-'));
+
+    // EQC 시작: 차수 대표 배지 1개만
+    if(eqcStarts.length>0){
+      const p=EQC_PERIODS.find(p=>p.start===dateStr);
+      const label=p?p.label:'';
+      const sc=p&&p.storage==='냉장'?'#0891b2':'#1d4ed8';
+      const dc=eqcStarts.filter(t=>maintDone['maint-'+dateStr+'-'+t.id]).length;
+      const bg=dc===eqcStarts.length?'#22c55e':dc>0?'#f59e0b':sc;
+      h+=`<div style="font-size:.6rem;background:${sc};color:#fff;border-radius:3px;padding:1px 4px;margin-top:2px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">외부 ${label} 시작</div>`;
+    }
+    // EQC 마감
+    if(eqcEnd.length>0){
+      const pe=EQC_PERIODS.find(p=>p.end===dateStr);
+      const elabel=pe?pe.label:'';
+      h+=`<div style="font-size:.6rem;background:#dc2626;color:#fff;border-radius:3px;padding:1px 4px;margin-top:2px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">외부 ${elabel} 마감</div>`;
+    }
+    // 일반 항목 - 점으로 표시할 항목 vs 글자로 표시할 항목
+    const dotIds = ['immuneqc','nx10qc'];
+    const dotTypes = normalTypes.filter(t=>dotIds.includes(t.id));
+    const labelTypes = normalTypes.filter(t=>!dotIds.includes(t.id));
+
+    // 글자 항목 (All Cal, AMR, Carry over 등) - wcal_main/sub는 하나로 통합 표시
+    const wcalTypes = labelTypes.filter(t=>t.id==='wcal_main'||t.id==='wcal_sub');
+    const otherLabelTypes = labelTypes.filter(t=>t.id!=='wcal_main'&&t.id!=='wcal_sub');
+    // wcal 통합 표시
+    if(wcalTypes.length>0){
+      const mainDone=maintDone['maint-'+dateStr+'-wcal_main'];
+      const subDone=maintDone['maint-'+dateStr+'-wcal_sub'];
+      const allDone=mainDone&&subDone;
+      const bg=allDone?'#dcfce7':'#06b6d4';
+      const tc=allDone?'#15803d':'#fff';
+      h+=`<div style="font-size:.6rem;background:${bg};color:${tc};border-radius:3px;padding:1px 4px;margin-top:2px;overflow:hidden;word-break:keep-all;line-height:1.4;">${allDone?'✔ ':''}Weekly Cal, RF QC</div>`;
+    }
+    otherLabelTypes.forEach(t=>{
+      const key='maint-'+dateStr+'-'+t.id;
+      const done=maintDone[key];
+      const bg=done?'#dcfce7':t.color;
+      const tc=done?'#15803d':'#fff';
+      h+=`<div style="font-size:.6rem;background:${bg};color:${tc};border-radius:3px;padding:1px 4px;margin-top:2px;overflow:hidden;word-break:keep-all;line-height:1.4;">${done?'✔ ':''}${t.label}</div>`;
+    });
+
+    // 점 항목 (면역QC, NX10QC, Weekly 등) - 한 줄에 점으로
+    if(dotTypes.length>0){
+      h+=`<div style="display:flex;flex-wrap:wrap;gap:2px;margin-top:3px;">`;
+      dotTypes.forEach(t=>{
+        const key='maint-'+dateStr+'-'+t.id;
+        const done=maintDone[key];
+        const bg=done?'#22c55e':t.color;
+        h+=`<span title="${t.label}" style="width:8px;height:8px;border-radius:50%;background:${bg};display:inline-block;cursor:pointer;"></span>`;
+      });
+      h+=`</div>`;
+    }
+
+    if(dayMemos[dateStr])
+      h+=`<div style="font-size:.58rem;color:#64748b;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">📝 ${dayMemos[dateStr]}</div>`;
+
+    h+='</div>';
+  }
+
+  const total=firstDay+daysInMonth;
+  const remain=total%7===0?0:7-(total%7);
+  for(let i=0;i<remain;i++)
+    h+='<div style="height:90px;background:#f8fafc;border-radius:6px;"></div>';
+  h+='</div></div>';
+  document.getElementById('maint-cal-wrap').innerHTML=h;
+}
+
+function toggleMaintCal(key){
+  maintDone[key]=!maintDone[key];
+  ls_save('v2_maintDone',maintDone);
+  renderMaintenance();
+}
+
+function toggleMaint(key,type){
+  if(type==='maint'){maintDone[key]=!maintDone[key];ls_save('v2_maintDone',maintDone);}
+  else{biDone[key]=!biDone[key];ls_save('v2_biDone',biDone);}
+  renderMaintenance();
+}
+
+
+// ── 교체 이력 ────────────────────────────────────────
+
+// ── 모달 ─────────────────────────────────────────────
+let modalDateStr='', modalTypes=[];
+let dayMemos = ls_load('v2_dayMemos', {});
+
+function openDayModal(dateStr) {
+  modalDateStr=dateStr;
+  const [y,m,d]=dateStr.split('-');
+  const yr=parseInt(y), mo=parseInt(m)-1, dy=parseInt(d);
+  document.getElementById('modal-title').textContent = y+'년 '+parseInt(m)+'월 '+parseInt(d)+'일';
+  const types=getMaintTypes(yr,mo,dy);
+  modalTypes=types;
+  const normalT=types.filter(t=>!t.id.startsWith('eqc-')||t.id.startsWith('eqc-e-'));
+  const eqcT=types.filter(t=>t.id.startsWith('eqc-')&&!t.id.startsWith('eqc-e-')&&!t.id.startsWith('eqc-due-'));
+  let html='';
+  if(types.length===0){
+    html='<p style="color:#94a3b8;font-size:.82rem;">지정된 일정 없음</p>';
+  } else {
+    if(normalT.length>0){
+      html+='<div style="font-size:.78rem;font-weight:600;color:#64748b;margin-bottom:6px;">오늘의 일정</div>';
+      normalT.forEach(t=>{
+        const key='maint-'+dateStr+'-'+t.id;
+        const done=maintDone[key];
+        html+=`<label style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;background:${done?'#dcfce7':'#f8fafc'};margin-bottom:6px;cursor:pointer;"><input type="checkbox" ${done?'checked':''} onchange="toggleMaintCal('${key}')" style="width:16px;height:16px;accent-color:#22c55e;"><span style="font-size:.82rem;font-weight:600;color:#0f2744;">${t.label}</span><span style="margin-left:auto;font-size:.7rem;padding:2px 8px;border-radius:20px;background:${t.color};color:#fff;">${done?'완료':'예정'}</span></label>`;
+      });
+    }
+    if(eqcT.length>0){
+      const p=EQC_PERIODS.find(x=>x.start===dateStr);
+      html+='<div style="font-size:.78rem;font-weight:600;color:#64748b;margin:8px 0 6px;">🔬 외부정도관리 '+(p?p.label:'')+'</div>';
+      eqcT.forEach(t=>{
+        const key='maint-'+dateStr+'-'+t.id;
+        const done=maintDone[key];
+        const name=p?t.label.replace('[외부QC '+p.label+'] ',''):t.label;
+        html+=`<label style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;background:${done?'#dcfce7':'#f8fafc'};margin-bottom:6px;cursor:pointer;"><input type="checkbox" ${done?'checked':''} onchange="toggleMaintCal('${key}')" style="width:16px;height:16px;accent-color:#22c55e;"><span style="font-size:.82rem;color:#0f2744;">${name}</span><span style="margin-left:auto;font-size:.7rem;padding:2px 8px;border-radius:20px;background:${t.color};color:#fff;">${done?'완료':'미완'}</span></label>`;
+      });
+    }
+  }
+  document.getElementById('modal-tasks').innerHTML=html;
+  document.getElementById('modal-memo').value=dayMemos[dateStr]||'';
+  document.getElementById('day-modal').style.display='flex';
+}
+
+function closeModal(){
+  document.getElementById('day-modal').style.display='none';
+}
+
+function saveModal(){
+  const memo=document.getElementById('modal-memo').value.trim();
+  if(memo) dayMemos[modalDateStr]=memo;
+  else delete dayMemos[modalDateStr];
+  ls_save('v2_dayMemos',dayMemos);
+  closeModal();
+  renderMaintenance();
+}
+
+function renderHistory() {
+  const sel=document.getElementById('h-reagent');
+  sel.innerHTML='<option value="">시약 선택</option>';
+  REAGENTS.forEach(r=>sel.innerHTML+=`<option value="${r.id}">${r.name}</option>`);
+  const list=document.getElementById('h-list');
+  if(!historyData.length){list.innerHTML='<p style="color:var(--muted);font-size:.8rem;">이력이 없습니다.</p>';return;}
+  list.innerHTML=[...historyData].reverse().map((h,ri)=>{
+    const r=REAGENTS.find(x=>x.id===h.reagent);
+    const idx=historyData.length-1-ri;
+    return `<div class="history-item">
+      <span class="hi-name">${r?r.name:h.reagent}</span>
+      <span class="hi-date">장착: ${h.date}</span>
+      ${h.note?`<span style="color:var(--muted);font-size:.75rem;">| ${h.note}</span>`:''}
+      <span class="hi-by">${h.by||''}</span>
+      <button class="del-btn" onclick="delHistory(${idx})">🗑</button>
+    </div>`;
+  }).join('');
+}
+function addHistory() {
+  const rid=document.getElementById('h-reagent').value;
+  const date=document.getElementById('h-date').value;
+  const by=document.getElementById('h-by').value.trim();
+  const note=document.getElementById('h-note').value.trim();
+  if(!rid||!date){alert('시약과 장착일을 선택해 주세요.');return;}
+  historyData.push({reagent:rid,date,by,note,ts:Date.now()});
+  ls_save('v2_historyData',historyData);
+  loadDates[rid]=date; doneFlags[rid]=false;
+  ls_save('v2_loadDates',loadDates); ls_save('v2_doneFlags',doneFlags);
+  document.getElementById('h-date').value='';
+  document.getElementById('h-by').value='';
+  document.getElementById('h-note').value='';
+  renderHistory(); renderTable(); renderMonthly();
+}
+function delHistory(idx) {
+  if(!confirm('삭제할까요?'))return;
+  historyData.splice(idx,1); ls_save('v2_historyData',historyData); renderHistory();
+}
+
+// ── 데이터 내보내기/가져오기 ─────────────────────────
+function exportData() {
+  const data = {
+    version: 1,
+    exportedAt: new Date().toLocaleString('ko-KR'),
+    loadDates,
+    doneFlags,
+    monthDone,
+    maintDone,
+    biDone,
+    historyData,
+    dayMemos,
+    docDone
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = '화학파트_시약관리_' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function resetData() {
+  if (!confirm('⚠️ 모든 데이터가 삭제됩니다!\n초기화 전에 💾 데이터 저장으로 백업하셨나요?\n\n계속하시려면 확인을 누르세요.')) return;
+  ['v2_loadDates','v2_doneFlags','v2_monthDone','v2_maintDone','v2_biDone','v2_historyData','v2_dayMemos','v2_docDone']
+    .forEach(k => localStorage.removeItem(k));
+  alert('✅ 초기화 완료! 페이지를 새로고침합니다.');
+  location.reload();
+}
+
+function importData(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (!data.version) throw new Error('잘못된 파일');
+      if (!confirm('저장된 데이터를 불러올까요? 현재 데이터는 덮어쓰입니다.')) return;
+      loadDates   = data.loadDates   || {};
+      doneFlags   = data.doneFlags   || {};
+      monthDone   = data.monthDone   || {};
+      maintDone   = data.maintDone   || {};
+      biDone      = data.biDone      || {};
+      historyData = data.historyData || [];
+      dayMemos    = data.dayMemos    || {};
+      ls_save('v2_loadDates',   loadDates);
+      ls_save('v2_doneFlags',   doneFlags);
+      ls_save('v2_monthDone',   monthDone);
+      ls_save('v2_maintDone',   maintDone);
+      ls_save('v2_biDone',      biDone);
+      ls_save('v2_historyData', historyData);
+      ls_save('v2_dayMemos', dayMemos);
+      if(data.docDone) { docDone=data.docDone; ls_save('v2_docDone',docDone); }
+      renderTable(); renderMonthly(); renderHistory();
+      alert('✅ 불러오기 완료! (' + (data.exportedAt||'') + ' 저장본)');
+    } catch(err) {
+      alert('❌ 파일을 읽을 수 없습니다. 올바른 저장 파일인지 확인해 주세요.');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+// ── 초기 렌더 ────────────────────────────────────────
+// 전역 노출 (Firebase module에서 접근)
+window.loadDates   = loadDates;
+window.doneFlags   = doneFlags;
+window.monthDone   = monthDone;
+window.maintDone   = maintDone;
+window.biDone      = biDone;
+window.historyData = historyData;
+window.dayMemos    = dayMemos;
+window.docDone     = docDone;
+window.renderTable   = renderTable;
+window.renderMonthly = renderMonthly;
+window.renderHistory = renderHistory;
+
+renderTable();
+renderMonthly();
+renderHistory();
+</script>
+</body>
+</html>
