@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="manifest" href="/manifest.json?v=20260428-shiftcards1">
+<link rel="manifest" href="/manifest.json?v=20260428-doc5month-overview1">
 <meta name="theme-color" content="#0f2744">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -15,7 +15,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
-  const APP_VERSION = '2026.04.28-shiftcards1';
+  const APP_VERSION = '2026.04.28-doc5month-overview1';
   const firebaseConfig = {
     apiKey: "AIzaSyAWuTlSadsagMSl3yRSOgT688gkbeqI0c4",
     authDomain: "lab-schedule-2026.firebaseapp.com",
@@ -708,6 +708,11 @@
   .user-switch{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.16);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:6px 10px;border-radius:999px;}
   .user-switch label{font-size:.72rem;color:#dbe7f5;font-weight:600;white-space:nowrap;}
   .user-select{border:none;background:rgba(255,255,255,.96);color:var(--navy);border-radius:999px;padding:6px 10px;font-size:.78rem;font-weight:700;font-family:'Noto Sans KR',sans-serif;outline:none;}
+  .sound-alert-controls{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  .sound-alert-btn{border:none;border-radius:999px;padding:7px 12px;font-size:.78rem;font-family:'Noto Sans KR',sans-serif;font-weight:800;cursor:pointer;white-space:nowrap;box-shadow:0 10px 20px rgba(0,0,0,.12);}
+  #sound-alert-toggle{background:#e5e7eb;color:#0f172a;}
+  #sound-alert-toggle.tone{background:#22c55e;color:#fff;}
+  #sound-alert-toggle.voice{background:#8b5cf6;color:#fff;}
 
   .header-alert{display:none;margin-top:14px;padding:12px 14px;border-radius:14px;background:linear-gradient(135deg,rgba(255,255,255,.18),rgba(255,255,255,.10));border:1px solid rgba(255,255,255,.18);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);}
   .header-alert.show{display:flex;align-items:center;justify-content:space-between;gap:12px;}
@@ -769,6 +774,16 @@
   .shift-title-row{display:flex;align-items:center;gap:9px;flex-wrap:wrap;}
   .shift-title{font-size:1.08rem;font-weight:900;color:var(--navy);}
   .shift-meta{font-size:.76rem;color:var(--muted);margin-top:4px;}
+  @media(max-width:600px){
+    .shift-panel{padding:12px !important;}
+    .shift-tools{gap:8px !important;margin-bottom:10px !important;align-items:flex-start !important;}
+    .shift-title-row{width:100%;justify-content:space-between;gap:8px;}
+    .shift-title{font-size:.96rem !important;}
+    .shift-meta{font-size:.68rem !important;line-height:1.3 !important;}
+    .shift-actions{width:100%;justify-content:flex-end;gap:6px;}
+    .shift-month-select{padding:7px 9px !important;font-size:.70rem !important;border-radius:12px !important;}
+    .shift-upload,#shift-save-edits{padding:7px 9px !important;font-size:.70rem !important;border-radius:12px !important;min-height:36px !important;}
+  }
   .shift-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
   .shift-month-select{border:1px solid rgba(191,205,221,.76);border-radius:14px;background:#fff;color:var(--navy);padding:8px 12px;font-size:.78rem;font-weight:800;font-family:'Noto Sans KR',sans-serif;box-shadow:0 8px 16px rgba(21,58,104,.06);}
   .shift-upload{display:inline-flex;align-items:center;justify-content:center;border:none;border-radius:16px;background:var(--blue);color:#fff;padding:10px 15px;font-size:.8rem;font-weight:800;font-family:'Noto Sans KR',sans-serif;cursor:pointer;box-shadow:0 12px 24px rgba(21,58,104,.14);}
@@ -1419,37 +1434,35 @@
 }
 
 @media(max-width:600px){
-  .shift-mobile-cards{display:grid;gap:10px;margin:10px 0 12px;}
-  .shift-mobile-day-card{background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(247,251,255,.94));border:1px solid rgba(212,225,237,.95);border-radius:18px;padding:13px 14px;box-shadow:0 12px 26px rgba(21,58,104,.07);}
-  .shift-mobile-day-card.today{border-color:rgba(47,128,237,.58);background:linear-gradient(180deg,#f7fbff,#eaf5ff);box-shadow:0 14px 30px rgba(47,128,237,.12);}
-  .shift-mobile-day-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:10px;}
-  .shift-mobile-day-title{font-size:1.08rem;font-weight:900;color:var(--navy);line-height:1.15;}
-  .shift-mobile-day-week{font-size:.78rem;font-weight:900;color:#6f86a1;}
-  .shift-mobile-today-badge{display:inline-flex;align-items:center;border-radius:999px;background:#2f80ed;color:#fff;padding:4px 8px;font-size:.68rem;font-weight:900;}
-  .shift-mobile-items{display:grid;gap:7px;}
-  .shift-mobile-row{display:grid;grid-template-columns:74px minmax(0,1fr);gap:8px;align-items:start;padding:8px 9px;border-radius:13px;background:rgba(246,250,255,.9);border:1px solid rgba(224,233,243,.8);}
-  .shift-mobile-label{font-size:.74rem;font-weight:900;color:#526d8b;line-height:1.35;}
-  .shift-mobile-value{font-size:.86rem;font-weight:900;color:var(--text);line-height:1.4;word-break:keep-all;}
-  .shift-mobile-value.empty{color:#91a4b9;font-weight:700;}
-  .shift-mobile-original-toggle{display:flex;justify-content:flex-end;margin:8px 0 10px;}
-  .shift-mobile-original-toggle .pill-btn{padding:8px 11px !important;font-size:.72rem !important;border-radius:13px !important;}
-  .shift-original-desktop-note{display:none;}
-  .shift-original-mobile-hidden{display:none !important;}
+  .shift-mobile-cards{display:none !important;}
+  .shift-mobile-original-toggle{display:none !important;}
+  .shift-original-desktop-note{display:flex !important;}
+  .shift-table-wrap{
+    margin:0 -4px;
+    padding:4px !important;
+    border-radius:14px !important;
+    max-height:none !important;
+  }
+  .shift-table{
+    font-size:.58rem !important;
+  }
   .shift-table td{
-    padding:3px 4px !important;
-    height:22px !important;
+    padding:2px 3px !important;
+    height:20px !important;
+    min-width:34px !important;
+    line-height:1.08 !important;
   }
   .shift-table td.cell-day-col{
-    width:52px !important;
-    min-width:52px !important;
-    max-width:52px !important;
-    font-size:.62rem !important;
-    line-height:1.15 !important;
+    width:46px !important;
+    min-width:46px !important;
+    max-width:46px !important;
+    font-size:.56rem !important;
+    line-height:1.08 !important;
   }
   .shift-table td.cell-day-col.small-text,
   .shift-table td.cell-day-col.compact-text{
-    font-size:.62rem !important;
-    line-height:1.15 !important;
+    font-size:.56rem !important;
+    line-height:1.08 !important;
     letter-spacing:0 !important;
   }
   .shift-table td.cell-weekday-head,
@@ -1460,6 +1473,315 @@
     font-size:.62rem !important;
     line-height:1.15 !important;
   }
+}
+
+
+
+/* doc monthly 5-month mobile window */
+.doc-month-toolbar{
+  padding:12px 18px 8px;
+  border-bottom:1px solid rgba(219,229,240,.74);
+  background:linear-gradient(180deg,rgba(255,255,255,.82),rgba(247,251,255,.68));
+}
+.doc-month-desktop-hint{
+  display:inline-flex;
+  align-items:center;
+  padding:6px 10px;
+  border-radius:999px;
+  background:#eef6ff;
+  color:#315f91;
+  font-size:.72rem;
+  font-weight:900;
+}
+.doc-month-control{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+}
+.doc-nav-btn{
+  border:none;
+  width:36px;
+  height:36px;
+  border-radius:14px;
+  background:linear-gradient(180deg,#ffffff,#eef6ff);
+  color:#17416d;
+  font-size:1.35rem;
+  font-weight:900;
+  box-shadow:0 8px 18px rgba(21,58,104,.10), inset 0 1px 0 rgba(255,255,255,.9);
+}
+.doc-nav-btn:disabled{opacity:.35;box-shadow:none;}
+.doc-month-window{
+  flex:1;
+  min-width:0;
+  text-align:center;
+  border:1px solid rgba(192,211,231,.86);
+  border-radius:16px;
+  padding:8px 10px;
+  background:rgba(255,255,255,.88);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.9);
+}
+.doc-month-window strong{display:block;font-size:.88rem;color:#123a64;line-height:1.15;}
+.doc-month-window span{display:block;margin-top:3px;font-size:.64rem;color:#7388a3;font-weight:800;}
+.doc-month-jumps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:8px;}
+.doc-month-jumps button{
+  border:1px solid rgba(198,211,228,.85);
+  border-radius:999px;
+  background:#f6f9fd;
+  color:#57708e;
+  padding:7px 6px;
+  font-size:.68rem;
+  font-weight:900;
+  font-family:'Noto Sans KR',sans-serif;
+}
+.doc-month-jumps button.active{
+  background:linear-gradient(135deg,#2f80ed,#27d3b4);
+  color:#fff;
+  border-color:transparent;
+  box-shadow:0 8px 18px rgba(47,128,237,.16);
+}
+.doc-check-btn{
+  display:inline-flex !important;
+  align-items:center;
+  justify-content:center;
+  width:22px;
+  height:22px;
+  border-radius:7px;
+  border:1px solid #cbd5e1 !important;
+  background:linear-gradient(180deg,#f4f6f8,#e5e9ee) !important;
+  color:#fff;
+  font-size:.86rem !important;
+  font-weight:1000;
+  line-height:1;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 2px 5px rgba(15,39,68,.08);
+}
+.doc-check-btn.checked{
+  border-color:#57b879 !important;
+  background:linear-gradient(180deg,#69cf88,#35a967) !important;
+  color:#fff !important;
+}
+
+@media(max-width:600px){
+  .doc-card-main .card-header{padding:13px 16px !important;font-size:.92rem !important;}
+  .doc-month-toolbar{padding:10px 12px 9px !important;}
+  .monthly-main-scroll{overflow:visible !important;margin:0 !important;padding:0 !important;}
+  .doc-table-monthly{width:100% !important;min-width:100% !important;table-layout:fixed !important;}
+  .doc-table-monthly th:first-child,.doc-table-monthly td:first-child{
+    min-width:116px !important;
+    max-width:116px !important;
+    width:116px !important;
+    font-size:.67rem !important;
+    line-height:1.22 !important;
+    padding:7px 7px !important;
+    background:#fff !important;
+    position:sticky !important;
+    left:0 !important;
+    z-index:4 !important;
+    box-shadow:7px 0 12px rgba(18,52,92,.08) !important;
+  }
+  .doc-table-monthly thead th:first-child{z-index:6 !important;background:#f7fbff !important;}
+  .doc-table-monthly th:not(:first-child),.doc-table-monthly td:not(:first-child){
+    min-width:0 !important;
+    width:calc((100vw - 24px - 116px) / 5) !important;
+    padding:6px 2px !important;
+    font-size:.66rem !important;
+    text-align:center !important;
+  }
+  .doc-table-monthly th{height:34px !important;}
+  .doc-table-monthly td{height:38px !important;}
+  .doc-table-monthly td.doc-done-cell{background:linear-gradient(180deg,#dffbe9,#d6f8e2) !important;}
+  .doc-table-monthly td.doc-empty-cell{background:#fbfdff !important;}
+  .doc-check-btn{width:21px !important;height:21px !important;border-radius:7px !important;font-size:.82rem !important;padding:0 !important;}
+}
+
+
+/* overview dense focus update - based on doc5month file */
+#tab-overview .summary-row{display:none !important;}
+#tab-overview .tip{
+  display:none !important;
+}
+#tab-overview .card{
+  overflow:visible !important;
+}
+#tab-overview .card-header{
+  padding:13px 15px !important;
+  font-size:.98rem !important;
+  font-weight:900 !important;
+  letter-spacing:-.02em !important;
+}
+#tab-overview .overview-table-wrap{
+  display:none !important;
+}
+#tab-overview .overview-mobile-list{
+  display:grid !important;
+  gap:7px !important;
+  padding:8px 10px 10px !important;
+}
+#tab-overview .overview-mobile-list .task-card{
+  display:block !important;
+  padding:10px 10px 9px !important;
+  border-radius:16px !important;
+  background:linear-gradient(180deg,#ffffff,#f8fbff) !important;
+  border:1px solid rgba(215,226,238,.95) !important;
+  box-shadow:0 8px 18px rgba(15,39,68,.045) !important;
+}
+#tab-overview .overview-mobile-list .task-card.ok{
+  border-left:5px solid #22c55e !important;
+}
+#tab-overview .overview-mobile-list .task-card.warn{
+  border-left:5px solid #f59e0b !important;
+  background:linear-gradient(180deg,#fffdf5,#fff8e7) !important;
+}
+#tab-overview .overview-mobile-list .task-card.danger{
+  border-left:5px solid #ef4444 !important;
+  background:linear-gradient(180deg,#fff6f6,#ffeded) !important;
+}
+#tab-overview .overview-mobile-list .task-card.none{
+  border-left:5px solid #cbd5e1 !important;
+}
+#tab-overview .compact-top,
+#tab-overview .task-top{
+  display:flex !important;
+  align-items:flex-start !important;
+  justify-content:space-between !important;
+  gap:9px !important;
+  margin-bottom:8px !important;
+}
+#tab-overview .task-name-wrap{
+  min-width:0 !important;
+  flex:1 1 auto !important;
+}
+#tab-overview .task-name{
+  font-size:.99rem !important;
+  font-weight:900 !important;
+  color:#123a67 !important;
+  line-height:1.18 !important;
+  letter-spacing:-.025em !important;
+}
+#tab-overview .compact-period,
+#tab-overview .task-period{
+  display:inline-flex !important;
+  margin-top:5px !important;
+  padding:3px 8px !important;
+  border-radius:999px !important;
+  background:#eef4ff !important;
+  color:#2b5da5 !important;
+  font-size:.66rem !important;
+  font-weight:900 !important;
+  line-height:1.25 !important;
+}
+#tab-overview .task-right-compact{
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:flex-end !important;
+  gap:5px !important;
+  flex:0 0 auto !important;
+}
+#tab-overview .task-dday-pill{
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  min-width:60px !important;
+  padding:6px 8px !important;
+  border-radius:999px !important;
+  font-size:.78rem !important;
+  font-weight:900 !important;
+  line-height:1 !important;
+  letter-spacing:-.02em !important;
+  background:#eef2f7 !important;
+  color:#52657d !important;
+}
+#tab-overview .task-dday-pill.ok{background:#ecfdf3 !important;color:#15803d !important;}
+#tab-overview .task-dday-pill.warn{background:#fff4d6 !important;color:#b45309 !important;}
+#tab-overview .task-dday-pill.danger{background:#ffe3e3 !important;color:#b91c1c !important;}
+#tab-overview .task-dday-pill.none,
+#tab-overview .task-dday-pill.muted{background:#eef2f7 !important;color:#7b8ba1 !important;}
+#tab-overview .task-state-badge{
+  font-size:.62rem !important;
+  font-weight:900 !important;
+  padding:4px 7px !important;
+}
+#tab-overview .task-grid{
+  display:none !important;
+}
+#tab-overview .task-meta-row{
+  display:grid !important;
+  grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+  gap:7px !important;
+  margin-bottom:8px !important;
+}
+#tab-overview .task-meta-chip{
+  min-width:0 !important;
+  border-radius:12px !important;
+  border:1px solid rgba(225,233,242,.95) !important;
+  background:rgba(248,251,255,.95) !important;
+  padding:7px 8px !important;
+}
+#tab-overview .task-meta-label{
+  display:block !important;
+  font-size:.61rem !important;
+  color:#7a8ea7 !important;
+  font-weight:900 !important;
+  margin-bottom:3px !important;
+  line-height:1.15 !important;
+}
+#tab-overview .task-meta-chip strong{
+  display:block !important;
+  font-size:.78rem !important;
+  color:#1f3854 !important;
+  line-height:1.2 !important;
+  word-break:break-word !important;
+}
+#tab-overview .compact-actions,
+#tab-overview .task-actions{
+  display:flex !important;
+  gap:7px !important;
+  align-items:stretch !important;
+}
+#tab-overview .compact-actions .date-input,
+#tab-overview .task-actions .date-input{
+  flex:1 1 auto !important;
+  width:100% !important;
+  min-width:0 !important;
+  padding:9px 10px !important;
+  font-size:.75rem !important;
+  border-radius:13px !important;
+}
+#tab-overview .task-done-btn{
+  flex:0 0 auto !important;
+  min-width:82px !important;
+  padding:9px 10px !important;
+  border-radius:13px !important;
+  font-size:.75rem !important;
+  font-weight:900 !important;
+}
+#tab-overview > div[style*="display:flex;gap:10px;margin-bottom:16px;"]{
+  margin-bottom:9px !important;
+  gap:8px !important;
+}
+#tab-overview #btn-main,
+#tab-overview #btn-sub{
+  padding:7px 13px !important;
+  font-size:.75rem !important;
+  border-radius:999px !important;
+  font-weight:900 !important;
+}
+@media(min-width:701px){
+  #tab-overview .overview-mobile-list{
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+  }
+}
+@media(max-width:600px){
+  #tab-overview .card{
+    margin-bottom:10px !important;
+  }
+  #tab-overview .overview-mobile-list{
+    gap:6px !important;
+    padding:7px 8px 9px !important;
+  }
+  .header-row{align-items:flex-start;}
+  .sound-alert-controls{width:100%;}
+  .sound-alert-btn{padding:8px 12px;font-size:.76rem;}
 }
 
 </style>
@@ -1480,11 +1802,14 @@
           <option value="임남영">임남영</option>
         </select>
       </div>
+      <div class="sound-alert-controls">
+        <button id="sound-alert-toggle" class="sound-alert-btn" type="button" onclick="toggleSoundAlert()">🔕 무음</button>
+      </div>
       <button onclick="exportData()" style="background:#00c9a7;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:.78rem;font-family:'Noto Sans KR',sans-serif;font-weight:600;cursor:pointer;">💾 데이터 저장</button>
       <label style="background:#f59e0b;color:#fff;border-radius:8px;padding:6px 14px;font-size:.78rem;font-family:'Noto Sans KR',sans-serif;font-weight:600;cursor:pointer;">📂 불러오기<input type="file" accept=".json" onchange="importData(event)" style="display:none;"></label>
       <button onclick="resetData()" style="background:#ef4444;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:.78rem;font-family:'Noto Sans KR',sans-serif;font-weight:600;cursor:pointer;">🗑️ 초기화</button>
       <span class="badge">8종 관리</span>
-      <span id="sync-indicator" style="font-size:.75rem;color:#94b8d8;">⏳ Firebase 연결 중...</span><span style="font-size:.68rem;color:#cbd5e1;">v2026.04.28-shiftcards1</span>
+      <span id="sync-indicator" style="font-size:.75rem;color:#94b8d8;">⏳ Firebase 연결 중...</span><span style="font-size:.68rem;color:#cbd5e1;">v2026.04.28-shiftfull2</span>
     </div>
   </div>
   <div id="header-handover-alert" class="header-alert">
@@ -1528,7 +1853,7 @@
   </div>
   <div class="summary-row" id="sum-row"></div>
   <div class="card">
-    <div id="r-table-header" class="card-header">Reagent On-Board Stability 현황 — Main 장비</div>
+    <div id="r-table-header" class="card-header">시약 교체주기 — Main 장비</div>
     <div class="overview-table-wrap">
       <table>
         <thead><tr>
@@ -1548,6 +1873,7 @@
 
   <div class="card doc-card-main">
     <div class="card-header">📋 매월 결재서류</div>
+    <div class="doc-month-toolbar" id="doc-month-toolbar" aria-label="월별 결재서류 월 이동"></div>
     <div class="doc-scroll monthly-main-scroll">
       <table id="doc-monthly-table" class="doc-table doc-table-monthly"></table>
     </div>
@@ -1815,6 +2141,174 @@ let currentUser = localStorage.getItem('v2_currentUser') || '김지호';
 const HANDOVER_USERS = ['김지호','임남영'];
 let currentPendingHandoverId = null;
 let expandedHandoverIds = new Set();
+let alertSoundCtx = null;
+let alertSoundUnlocked = false;
+let alertSoundArmed = false;
+let alertSoundQueued = false;
+let v2_soundAlertMode = initSoundAlertMode();
+let lastHandoverAlertSoundKey = '';
+let lastCycleAlertSoundKey = '';
+let lastAlertSoundAt = 0;
+
+function initSoundAlertMode(){
+  let mode = '';
+  try{ mode = localStorage.getItem('v2_soundAlertMode') || ''; }catch{}
+  if(!mode){
+    let legacyEnabled = '';
+    try{ legacyEnabled = localStorage.getItem('v2_soundAlertEnabled') || ''; }catch{}
+    mode = legacyEnabled === 'true' ? 'tone' : 'silent';
+  }
+  if(!['silent','tone','voice'].includes(mode)) mode = 'silent';
+  try{ localStorage.setItem('v2_soundAlertMode', mode); }catch{}
+  return mode;
+}
+
+function getAlertSoundContext(){
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
+  if(!AudioContext) return null;
+  if(!alertSoundCtx) alertSoundCtx = new AudioContext();
+  return alertSoundCtx;
+}
+
+function playAlertTone(type, force){
+  if(typeof type === 'boolean'){
+    force = type;
+    type = 'handover';
+  }
+  if(!force && v2_soundAlertMode !== 'tone') return;
+  const ctx = getAlertSoundContext();
+  if(!ctx) return;
+  if(ctx.state === 'suspended'){
+    alertSoundQueued = true;
+    ctx.resume().then(function(){
+      alertSoundUnlocked = true;
+      if(alertSoundQueued) playAlertTone(type, force);
+    }).catch(function(){});
+    return;
+  }
+  alertSoundQueued = false;
+  alertSoundUnlocked = true;
+  const nowMs = Date.now();
+  if(nowMs - lastAlertSoundAt < 900) return;
+  lastAlertSoundAt = nowMs;
+  const now = ctx.currentTime;
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(0.0001, now);
+  gain.gain.exponentialRampToValueAtTime(0.16, now + 0.018);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.36);
+  gain.connect(ctx.destination);
+  [880, 1174].forEach(function(freq, idx){
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, now + idx * 0.11);
+    osc.connect(gain);
+    osc.start(now + idx * 0.11);
+    osc.stop(now + idx * 0.11 + 0.2);
+  });
+}
+
+function playAlertSound(){
+  playAlertTone('handover', false);
+}
+
+function speakAlertMessage(type, force){
+  if(!force && v2_soundAlertMode !== 'voice') return;
+  if(!window.speechSynthesis || !window.SpeechSynthesisUtterance) return;
+  const message = type === 'overdue'
+    ? '기간 지난 항목이 있습니다. 확인해 주세요.'
+    : '인계사항이 있습니다. 확인해 주세요.';
+  try{
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(message);
+    utterance.lang = 'ko-KR';
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+    utterance.volume = 0.9;
+    window.speechSynthesis.speak(utterance);
+  }catch(e){}
+}
+
+function unlockAlertSound(){
+  const ctx = getAlertSoundContext();
+  if(!ctx) return;
+  const markUnlocked = function(){
+    alertSoundUnlocked = true;
+    if(alertSoundQueued) playAlertTone('handover', false);
+  };
+  if(ctx.state === 'suspended'){
+    ctx.resume().then(markUnlocked).catch(function(){});
+  }else{
+    markUnlocked();
+  }
+}
+
+function queueAlertSound(type){
+  if(v2_soundAlertMode === 'silent') return;
+  if(!alertSoundArmed) return;
+  if(!alertSoundUnlocked){
+    alertSoundQueued = true;
+    unlockAlertSound();
+    return;
+  }
+  playAlertTone(type || 'handover', false);
+}
+
+function playAlertOnce(alertKey, type){
+  if(v2_soundAlertMode === 'silent' || !alertSoundArmed || !alertKey) return;
+  let lastKey = '';
+  try{ lastKey = localStorage.getItem('v2_lastSoundAlertKey') || ''; }catch{}
+  if(lastKey === alertKey) return;
+  try{ localStorage.setItem('v2_lastSoundAlertKey', alertKey); }catch{}
+  if(v2_soundAlertMode === 'voice'){
+    speakAlertMessage(type, false);
+    return;
+  }
+  if(v2_soundAlertMode === 'tone') playAlertTone(type, false);
+}
+
+function triggerSoundAlert(alertType, soundKey){
+  const type = alertType === 'cycle' ? 'overdue' : 'handover';
+  playAlertOnce(type + ':' + soundKey, type);
+}
+
+function updateSoundAlertButtons(){
+  const toggle = document.getElementById('sound-alert-toggle');
+  if(toggle){
+    const labels = {
+      silent: '🔕 무음',
+      tone: '🔔 띠딩',
+      voice: '🗣️ 음성'
+    };
+    toggle.textContent = labels[v2_soundAlertMode] || labels.silent;
+    toggle.classList.toggle('tone', v2_soundAlertMode === 'tone');
+    toggle.classList.toggle('voice', v2_soundAlertMode === 'voice');
+  }
+}
+
+function toggleSoundAlert(){
+  v2_soundAlertMode = v2_soundAlertMode === 'silent' ? 'tone' : (v2_soundAlertMode === 'tone' ? 'voice' : 'silent');
+  try{ localStorage.setItem('v2_soundAlertMode', v2_soundAlertMode); }catch{}
+  updateSoundAlertButtons();
+  unlockAlertSound();
+}
+
+function armAlertSound(){
+  alertSoundArmed = true;
+  const handoverKey = getUnackedHandovers().map(item => item.id + ':' + (item.createdAt || '')).join('|');
+  const cycleKey = getOverdueItems().map(item => item.id + ':' + (item.dueDate || '') + ':' + item.daysLeft).join('|');
+  if(handoverKey) playAlertOnce('handover:' + handoverKey, 'handover');
+  if(cycleKey) playAlertOnce('overdue:' + cycleKey, 'overdue');
+  lastHandoverAlertSoundKey = handoverKey;
+  lastCycleAlertSoundKey = cycleKey;
+}
+
+['pointerdown','keydown','touchstart'].forEach(function(eventName){
+  window.addEventListener(eventName, unlockAlertSound, {passive:true});
+});
+window.addEventListener('load', function(){
+  updateSoundAlertButtons();
+  setTimeout(armAlertSound, 800);
+});
 
 // PM 기본 장착일
 if (!loadDates['pm']) { loadDates['pm'] = '2026-01-29'; }
@@ -1883,7 +2377,7 @@ function switchDevice(dev) {
   document.getElementById('btn-sub').style.background = dev==='sub' ? '#22c55e' : '#e2e8f0';
   document.getElementById('btn-sub').style.color = dev==='sub' ? '#fff' : 'var(--text)';
   document.getElementById('r-table-header').textContent = 
-    'Reagent On-Board Stability 현황 — ' + (dev==='main' ? 'Main 장비' : 'Sub 장비');
+    '시약 교체주기 — ' + (dev==='main' ? 'Main 장비' : 'Sub 장비');
   renderTable();
 }
 
@@ -1945,28 +2439,27 @@ function renderTable() {
       const lastDoneText = ld || '미입력';
       const ddayText = d === null ? '—' : (d < 0 ? `D+${Math.abs(d)}` : `D-${d}`);
       card.innerHTML = `
-        <div class="task-top">
-          <div>
+        <div class="task-top compact-top">
+          <div class="task-name-wrap">
             <div class="task-name">${r.name}</div>
-            <div class="task-label" style="margin-top:3px;margin-bottom:0;">${r.days}일 주기</div>
+            <div class="task-period compact-period">${r.days}일 주기</div>
           </div>
-          <div class="task-state-badge ${state.key}">${state.label}</div>
-        </div>
-        <div class="task-grid">
-          <div class="task-field">
-            <span class="task-label">마지막 수행일</span>
-            <div class="task-value ${ld ? '' : 'muted'}">${lastDoneText}</div>
-          </div>
-          <div class="task-field">
-            <span class="task-label">다음 예정일</span>
-            <div class="task-value ${due ? '' : 'muted'}">${dueText}</div>
-          </div>
-          <div class="task-field">
-            <span class="task-label">D-day</span>
-            <div class="task-value task-dday ${state.key} ${d === null ? 'muted' : ''}">${ddayText}</div>
+          <div class="task-right-compact">
+            <div class="task-dday-pill ${state.key} ${d === null ? 'muted' : ''}">${ddayText}</div>
+            <div class="task-state-badge ${state.key}">${state.label}</div>
           </div>
         </div>
-        <div class="task-actions">
+        <div class="task-meta-row">
+          <div class="task-meta-chip">
+            <span class="task-meta-label">마지막 수행</span>
+            <strong>${lastDoneText}</strong>
+          </div>
+          <div class="task-meta-chip">
+            <span class="task-meta-label">다음 예정</span>
+            <strong>${dueText}</strong>
+          </div>
+        </div>
+        <div class="task-actions compact-actions">
           <input type="date" class="date-input" value="${ld}" onfocus="prefillDateInput(this)" onclick="prefillDateInput(this)" onchange="setLoad('${r.id}',this.value)">
           <button class="task-done-btn" onclick="toggleDone('${r.id}')">오늘 완료</button>
         </div>`;
@@ -2055,8 +2548,49 @@ const EQC_DOCS = [
 ];
 
 let docDone = ls_load('v2_docDone', {}); // {'docId-mo': true}
+let docMonthStart = Math.max(0, Math.min(7, new Date().getMonth() - 2));
+
+function isDocMobileView() {
+  return window.matchMedia && window.matchMedia('(max-width: 600px)').matches;
+}
+
+function setDocMonthStart(start) {
+  docMonthStart = Math.max(0, Math.min(7, start));
+  renderMonthly();
+}
+
+function jumpDocMonthGroup(groupStart) {
+  setDocMonthStart(groupStart);
+}
+
+function renderDocMonthToolbar() {
+  const toolbar = document.getElementById('doc-month-toolbar');
+  if (!toolbar) return;
+  if (!isDocMobileView()) {
+    toolbar.innerHTML = '<div class="doc-month-desktop-hint">12개월 전체 보기</div>';
+    return;
+  }
+  const start = Math.max(0, Math.min(7, docMonthStart));
+  const end = Math.min(11, start + 4);
+  const monthRange = MONTHS_SHORT[start] + ' ~ ' + MONTHS_SHORT[end];
+  toolbar.innerHTML = `
+    <div class="doc-month-control">
+      <button type="button" class="doc-nav-btn" onclick="setDocMonthStart(docMonthStart-1)" ${start===0?'disabled':''}>‹</button>
+      <div class="doc-month-window">
+        <strong>${monthRange}</strong>
+        <span>핸드폰은 5개월씩 보기</span>
+      </div>
+      <button type="button" class="doc-nav-btn" onclick="setDocMonthStart(docMonthStart+1)" ${end===11?'disabled':''}>›</button>
+    </div>
+    <div class="doc-month-jumps">
+      <button type="button" onclick="jumpDocMonthGroup(0)" class="${start<=1?'active':''}">1-5월</button>
+      <button type="button" onclick="jumpDocMonthGroup(4)" class="${start>=2 && start<=5?'active':''}">5-9월</button>
+      <button type="button" onclick="jumpDocMonthGroup(7)" class="${start>=6?'active':''}">8-12월</button>
+    </div>`;
+}
 
 function renderMonthly() {
+  renderDocMonthToolbar();
   renderDocTable('doc-monthly-table', MONTHLY_DOCS, 'monthly', 12);
   renderBiAnnualTable();
   renderLotTable();
@@ -2135,9 +2669,12 @@ function renderEqcTable() {
 
 function renderDocTable(tableId, docs, type, cols) {
   const isQuarter = type==='quarter';
+  const isMonthlyMobile = type === 'monthly' && isDocMobileView();
+  const monthStart = isMonthlyMobile ? Math.max(0, Math.min(7, docMonthStart)) : 0;
+  const monthEndExclusive = isMonthlyMobile ? Math.min(12, monthStart + 5) : cols;
   const colLabels = isQuarter
     ? ['1분기 (1~3월)','2분기 (4~6월)','3분기 (7~9월)','4분기 (10~12월)']
-    : MONTHS_SHORT;
+    : MONTHS_SHORT.slice(monthStart, monthEndExclusive);
 
   let h = '<thead><tr>';
   h += '<th style="min-width:200px;text-align:left;padding-left:14px;">서류명</th>';
@@ -2148,11 +2685,11 @@ function renderDocTable(tableId, docs, type, cols) {
     const bg = di%2===0?'#ffffff':'#f8fafc';
     h += `<tr>`;
     h += `<td style="font-weight:600;color:#0f2744;padding:10px 14px;background:${bg};">${doc}</td>`;
-    for(let ci=0; ci<cols; ci++){
+    for(let ci=monthStart; ci<monthEndExclusive; ci++){
       const key = type+'-'+di+'-'+ci;
       const done = docDone[key];
-      h += `<td style="text-align:center;background:${done?'#dcfce7':bg};padding:8px 4px;">
-        <button class="check-btn" onclick="toggleDoc('${key}')" style="font-size:1rem;">${done?'✅':'⬜'}</button>
+      h += `<td class="${done?'doc-done-cell':'doc-empty-cell'}" style="text-align:center;background:${done?'#dcfce7':bg};padding:8px 4px;">
+        <button class="check-btn doc-check-btn ${done?'checked':''}" onclick="toggleDoc('${key}')" aria-label="${doc} ${MONTHS_SHORT[ci]} ${done?'완료':'미완료'}">${done?'✓':''}</button>
       </td>`;
     }
     h += '</tr>';
@@ -2173,6 +2710,11 @@ function toggleMonth(key, sched) {
   if (!sched && !monthDone[key]) return;
   monthDone[key]=!monthDone[key]; ls_save('v2_monthDone',monthDone); renderMonthly();
 }
+
+
+window.addEventListener('resize', function(){
+  if (document.getElementById('tab-monthly')?.classList.contains('active')) renderMonthly();
+});
 
 // ── Maintenance ──────────────────────────────────────
 // ── Maintenance 캘린더 ──────────────────────────────
@@ -2429,6 +2971,9 @@ function renderCycleAlert(){
   const txt = document.getElementById('header-cycle-alert-text');
   if(!box || !txt) return;
   const overdue = getOverdueItems();
+  const soundKey = overdue.map(item => item.id + ':' + (item.dueDate || '') + ':' + item.daysLeft).join('|');
+  if(alertSoundArmed && soundKey && soundKey !== lastCycleAlertSoundKey) playAlertOnce('overdue:' + soundKey, 'overdue');
+  lastCycleAlertSoundKey = soundKey;
   if(!overdue.length){
     box.classList.remove('show','unread-spark','emergency-yellow');
     return;
@@ -2466,6 +3011,9 @@ function renderHandoverAlert(){
   const txt = document.getElementById('header-handover-alert-text');
   if(!box || !txt) return;
   const pending = getUnackedHandovers();
+  const soundKey = pending.map(item => item.id + ':' + (item.createdAt || '')).join('|');
+  if(alertSoundArmed && soundKey && soundKey !== lastHandoverAlertSoundKey) playAlertOnce('handover:' + soundKey, 'handover');
+  lastHandoverAlertSoundKey = soundKey;
   if(!pending.length){
     box.classList.remove('show','unread-spark','emergency-red');
     return;
@@ -2894,7 +3442,7 @@ function isEditableShiftRow(label){
 }
 
 function isShiftMobileView(){
-  return window.matchMedia && window.matchMedia('(max-width: 600px)').matches;
+  return false;
 }
 
 function getShiftMobileDateCells(rows){
