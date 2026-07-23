@@ -1829,7 +1829,6 @@
     </div>
     <div class="alert-actions">
       <button class="alert-btn primary" onclick="openOverdueItem()">지금 확인하기</button>
-      <button class="alert-btn secondary" onclick="switchToOverviewTab()">주기 탭 열기</button>
     </div>
   </div>
 </header>
@@ -2068,7 +2067,7 @@
 // ── 데이터 정의 ──────────────────────────────────────
 const REAGENTS_MAIN = [
   {id:'sms',  name:'SMS',               acn:'08063478190', days:84,  cycle:'12주'},
-  {id:'sccs', name:'SCCS',              acn:'08463093190', days:7,   cycle:'1주'},
+  {id:'sccs', name:'SCCS',              acn:'08463093190', days:null, cycle:'필요시 교체', asNeeded:true},
   {id:'nacl', name:'NaCl',              acn:'08063494190', days:182, cycle:'26주'},
   {id:'a1cd', name:'A1CD',              acn:'08463107190', days:28,  cycle:'4주'},
   {id:'acid', name:'Acid Wash(Black)',  acn:'08302723190', days:84,  cycle:'12주'},
@@ -2356,13 +2355,14 @@ function switchTab(el, name) {
 // ── 요약 ─────────────────────────────────────────────
 function renderSummary() {
   let ok=0, warn=0, danger=0, none=0;
-  REAGENTS.forEach(r => {
+  const countable = REAGENTS.filter(r => !r.asNeeded);
+  countable.forEach(r => {
     if (!loadDates[r.id]) { none++; return; }
     const d = diffDays(today(), addDays(loadDates[r.id], r.days));
     if (d<0) danger++; else if (d<=7) warn++; else ok++;
   });
   document.getElementById('sum-row').innerHTML =
-    `<div class="sum-card c-total"><div class="sum-val">${REAGENTS.length}</div><div class="sum-label">전체</div></div>
+    `<div class="sum-card c-total"><div class="sum-val">${countable.length}</div><div class="sum-label">전체</div></div>
      <div class="sum-card c-ok"><div class="sum-val">${ok}</div><div class="sum-label">정상</div></div>
      <div class="sum-card c-warn"><div class="sum-val">${warn}</div><div class="sum-label">7일 이내</div></div>
      <div class="sum-card c-danger"><div class="sum-val">${danger}</div><div class="sum-label">기간 초과</div></div>`;
@@ -2395,13 +2395,19 @@ function renderTable() {
   if (mobileList) mobileList.innerHTML = '';
 
   REAGENTS.forEach(r => {
+    const isAsNeeded = !!r.asNeeded;
     const ld  = loadDates[r.id] || '';
-    const due = ld ? addDays(ld, r.days) : '';
-    const d   = due ? diffDays(today(), due) : null;
-    const state = getCycleState(d);
+    const due = (!isAsNeeded && ld) ? addDays(ld, r.days) : '';
+    const d   = (!isAsNeeded && due) ? diffDays(today(), due) : null;
+    const state = isAsNeeded ? {key:'none', label:'필요시'} : getCycleState(d);
+    const periodText = isAsNeeded ? '필요시 교체' : `${r.days}일 주기`;
+    const periodShortText = isAsNeeded ? '필요시' : `${r.days}일`;
 
     let st, dd;
-    if (d === null) {
+    if (isAsNeeded) {
+      st = `<span class="status none"><span class="dot"></span>필요시</span>`;
+      dd = `<span style="color:#94a3b8;font-weight:700;">—</span>`;
+    } else if (d === null) {
       st = `<span class="status none"><span class="dot"></span>미입력</span>`;
       dd = `<span style="color:#94a3b8;font-weight:700;">—</span>`;
     } else if (d < 0) {
@@ -2416,16 +2422,18 @@ function renderTable() {
     }
 
     let rowCls = '';
-    if (d !== null) {
+    if (!isAsNeeded && d !== null) {
       if (d < 0) rowCls = 'row-danger';
       else if (d <= 7) rowCls = 'row-warn';
     }
 
     const tr = document.createElement('tr');
+    tr.dataset.reagentId = r.id;
+    tr.dataset.device = currentDevice;
     if (rowCls) tr.className = rowCls;
     tr.innerHTML =
       `<td><div class="reagent-name">${r.name}</div></td>
-       <td style="color:var(--muted);font-weight:800;">${r.days}일</td>
+       <td style="color:var(--muted);font-weight:800;">${periodShortText}</td>
        <td><input type="date" class="date-input" value="${ld}" onfocus="prefillDateInput(this)" onclick="prefillDateInput(this)" onchange="setLoad('${r.id}',this.value)"></td>
        <td><span class="due-date-text" title="${due || ''}">${due ? due : '—'}</span></td>
        <td>${dd}</td><td>${st}</td>
@@ -2435,17 +2443,19 @@ function renderTable() {
     if (mobileList) {
       const card = document.createElement('div');
       card.className = `task-card ${state.key}`;
+      card.dataset.reagentId = r.id;
+      card.dataset.device = currentDevice;
       const dueText = due ? due : '—';
       const lastDoneText = ld || '미입력';
-      const ddayText = d === null ? '—' : (d < 0 ? `D+${Math.abs(d)}` : `D-${d}`);
+      const ddayText = isAsNeeded ? '—' : (d === null ? '—' : (d < 0 ? `D+${Math.abs(d)}` : `D-${d}`));
       card.innerHTML = `
         <div class="task-top compact-top">
           <div class="task-name-wrap">
             <div class="task-name">${r.name}</div>
-            <div class="task-period compact-period">${r.days}일 주기</div>
+            <div class="task-period compact-period">${periodText}</div>
           </div>
           <div class="task-right-compact">
-            <div class="task-dday-pill ${state.key} ${d === null ? 'muted' : ''}">${ddayText}</div>
+            <div class="task-dday-pill ${state.key} ${(d === null || isAsNeeded) ? 'muted' : ''}">${ddayText}</div>
             <div class="task-state-badge ${state.key}">${state.label}</div>
           </div>
         </div>
@@ -2956,7 +2966,7 @@ function getUnackedHandovers(){
 
 
 function getOverdueItems(){
-  const all = [...REAGENTS_MAIN, ...REAGENTS_SUB];
+  const all = [...REAGENTS_MAIN, ...REAGENTS_SUB].filter(r => !r.asNeeded);
   return all.map(r => {
     const ld = loadDates[r.id] || '';
     const due = ld ? addDays(ld, r.days) : '';
@@ -2995,15 +3005,18 @@ function openOverdueItem(){
   if(!overdue.length) return;
   const first = overdue[0];
   switchDevice(first.device);
-  const target = document.querySelector(`[onclick="toggleDone('${first.id}')"]`);
-  const mobileCard = target ? target.closest('.task-card') : null;
-  const desktopRow = target ? target.closest('tr') : null;
-  const focusEl = mobileCard || desktopRow;
-  if(focusEl){
-    focusEl.scrollIntoView({behavior:'smooth', block:'center'});
-    focusEl.classList.add('flash-focus');
-    setTimeout(()=>focusEl.classList.remove('flash-focus'), 1800);
-  }
+  setTimeout(function(){
+    const selector = `[data-reagent-id="${first.id}"][data-device="${first.device}"]`;
+    const focusEl =
+      document.querySelector(`#r-mobile-list ${selector}`) ||
+      document.querySelector(`#r-tbody ${selector}`) ||
+      document.querySelector(selector);
+    if(focusEl){
+      focusEl.scrollIntoView({behavior:'smooth', block:'center'});
+      focusEl.classList.add('flash-focus');
+      setTimeout(()=>focusEl.classList.remove('flash-focus'), 1800);
+    }
+  }, 80);
 }
 
 function renderHandoverAlert(){
