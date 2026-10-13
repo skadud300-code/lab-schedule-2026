@@ -1810,6 +1810,16 @@ body:has(#tab-shift.active) main{max-width:1540px}
 #paycheck-widget .paycheck-field-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 #paycheck-widget .paycheck-field{display:flex;flex-direction:column;gap:6px;min-width:0;margin-bottom:10px}
 #paycheck-widget .paycheck-field>span{font-size:.76rem;font-weight:850;color:#4b6584}
+#paycheck-widget .paycheck-name-selector{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:12px;align-items:start;margin-bottom:12px}
+#paycheck-widget .paycheck-names-left{min-width:0}
+#paycheck-widget .paycheck-name-title{font-size:.74rem;font-weight:850;color:#4b6584;display:block;margin-bottom:6px}
+#paycheck-widget .paycheck-name-buttons{max-height:214px;overflow-y:auto;overscroll-behavior:contain;display:grid;grid-template-columns:1fr;gap:5px;padding:3px 4px 4px 2px;border-radius:10px;scrollbar-width:thin}
+#paycheck-widget .paycheck-name-choice{display:block;min-height:44px;width:100%;text-align:left;padding:9px 12px;border:1px solid #cddfea;background:#fff;color:#244a70;border-radius:11px;font-size:.83rem;font-weight:800;cursor:pointer;touch-action:manipulation}
+#paycheck-widget .paycheck-name-choice:focus-visible{outline:3px solid #2d8ce5;outline-offset:2px}
+#paycheck-widget .paycheck-name-choice.is-selected{background:#dff3ff;color:#09579e;border-color:#2c82d4;box-shadow:0 0 0 1px #2c82d4 inset}
+#paycheck-widget .paycheck-name-help{font-size:.68rem;color:#6d849c;line-height:1.5;display:block;margin-top:7px}
+#paycheck-widget .paycheck-name-placeholder{font-size:.72rem;color:#7c8ea0;padding:10px}
+@media(max-width:600px){body:has(#tab-shift.active)>header{position:static!important}body:has(#tab-shift.active)>.tabs{position:static!important}}
 #paycheck-widget .paycheck-field em{font-style:normal;background:#eaf8f0;color:#208357;padding:3px 6px;border-radius:7px;font-size:.62rem;margin-left:3px}
 #paycheck-widget input:not([type=checkbox]),#paycheck-widget select{width:100%;border:1px solid #cdddea;border-radius:13px;padding:11px 12px;font-size:.86rem;background:#fff;color:#183653;min-width:0;min-height:43px;outline-color:#408ade}
 #paycheck-widget .paycheck-result{padding:15px;margin:0 15px 14px;border-radius:18px;border:1px solid #c9e3f5;background:linear-gradient(135deg,#edf8ff,#f7fcff)}
@@ -1868,7 +1878,7 @@ body:has(#tab-shift.active) main{max-width:1540px}
       <label style="background:#f59e0b;color:#fff;border-radius:8px;padding:6px 14px;font-size:.78rem;font-family:'Noto Sans KR',sans-serif;font-weight:600;cursor:pointer;">📂 불러오기<input type="file" accept=".json" onchange="importData(event)" style="display:none;"></label>
       <button onclick="resetData()" style="background:#ef4444;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:.78rem;font-family:'Noto Sans KR',sans-serif;font-weight:600;cursor:pointer;">🗑️ 초기화</button>
       <span class="badge">8종 관리</span>
-      <span id="sync-indicator" style="font-size:.75rem;color:#94b8d8;">⏳ Firebase 연결 중...</span><span style="font-size:.68rem;color:#cbd5e1;">v2026.10.13-paycheck-net1</span>
+      <span id="sync-indicator" style="font-size:.75rem;color:#94b8d8;">⏳ Firebase 연결 중...</span><span style="font-size:.68rem;color:#cbd5e1;">v2026.10.13-paycheck-names2</span>
     </div>
   </div>
   <div id="header-handover-alert" class="header-alert">
@@ -2095,7 +2105,16 @@ body:has(#tab-shift.active) main{max-width:1540px}
   <div id="paycheck-private" hidden>
     <div class="paycheck-privacy-toolbar"><span>이 창을 닫으면 급여 입력값을 지웁니다.</span><button type="button" onclick="paycheckLock()">🔒 잠금·초기화</button></div>
     <div class="paycheck-fields">
-      <label class="paycheck-field"><span>이름 <em>근무표 연동</em></span><input id="paycheck-name" list="paycheck-name-list" autocomplete="off" placeholder="예: 지호 또는 김지호" oninput="paycheckOnNameInput()"><datalist id="paycheck-name-list"></datalist></label>
+      <div class="paycheck-name-selector">
+        <div class="paycheck-names-left">
+          <span class="paycheck-name-title">근무표 직원 선택</span>
+          <div id="paycheck-name-buttons" class="paycheck-name-buttons" role="group" aria-label="근무표 직원 이름"></div>
+        </div>
+        <label class="paycheck-field"><span>선택한 이름 <em>근무표 연동</em></span>
+          <select id="paycheck-name" aria-label="급여를 계산할 직원" onchange="paycheckOnNameInput()"><option value="">직원 선택</option></select>
+          <small class="paycheck-name-help">왼쪽 이름을 누르거나 목록에서 선택하세요.</small>
+        </label>
+      </div>
       <div class="paycheck-field-grid">
         <label class="paycheck-field"><span>통상시급 (원 · 소수점 입력 권장)</span><input id="paycheck-rate" type="number" min="0" step="0.01" inputmode="decimal" autocomplete="off" placeholder="시급 입력" oninput="paycheckCompute()"></label>
         <label class="paycheck-field"><span>직책수당 (원)</span><input id="paycheck-role" type="number" min="0" step="1" inputmode="numeric" autocomplete="off" placeholder="0" oninput="paycheckCompute()"></label>
@@ -4391,6 +4410,20 @@ function paycheckLock(){
   paycheckById('paycheck-locked').hidden=false;
   paycheckById('paycheck-private').hidden=true;
 }
+function paycheckSelectName(name){
+  const selector=paycheckById('paycheck-name');
+  if(!selector)return;
+  selector.value=name;
+  paycheckOnNameInput();
+}
+function paycheckUpdateNameButtons(){
+  const chosen=paycheckById('paycheck-name')?.value||'';
+  paycheckById('paycheck-name-buttons')?.querySelectorAll('.paycheck-name-choice').forEach(button=>{
+    const active=button.dataset.name===chosen;
+    button.classList.toggle('is-selected',active);
+    button.setAttribute('aria-pressed',active?'true':'false');
+  });
+}
 function paycheckOnNameInput(){
   const target=paycheckResolveName(paycheckById('paycheck-name')?.value);
   const newName=target?.name||'';
@@ -4401,6 +4434,7 @@ function paycheckOnNameInput(){
     paycheckById('paycheck-name').value=typed;
     paycheckSelectedName=newName;
   }
+  paycheckUpdateNameButtons();
   paycheckCompute();
 }
 function paycheckRefreshShiftLink(){
@@ -4410,8 +4444,25 @@ function paycheckRefreshShiftLink(){
   if(signature===paycheckCacheSignature && paycheckRoster)return;
   paycheckCacheSignature=signature;
   paycheckRoster=paycheckAnalyzeRoster(sheet);
-  const names=paycheckById('paycheck-name-list');
-  if(names)names.innerHTML=paycheckRoster.people.map(p=>`<option value="${paycheckEscape(p.name)}"></option>`).join('');
+  const selector=paycheckById('paycheck-name');
+  const previous=selector?.value||'';
+  const people=paycheckRoster.people;
+  if(selector){
+    selector.innerHTML='<option value="">직원 선택</option>'+
+      people.map(p=>'<option value="'+paycheckEscape(p.name)+'">'+paycheckEscape(p.name)+'</option>').join('');
+    selector.value=people.some(p=>p.name===previous)?previous:'';
+  }
+  const choices=paycheckById('paycheck-name-buttons');
+  if(choices){
+    choices.innerHTML=people.length?
+      people.map(p=>'<button class="paycheck-name-choice" type="button" data-name="'+paycheckEscape(p.name)+'" onclick="paycheckSelectName(this.dataset.name)">'+paycheckEscape(p.name)+'</button>').join(''):
+      '<p class="paycheck-name-placeholder">업로드된 근무표의 직원이 없습니다.</p>';
+  }
+  if(!selector?.value && paycheckSelectedName){
+    paycheckResetInputs();
+    paycheckSelectedName='';
+  }
+  paycheckUpdateNameButtons();
   if(paycheckUnlocked)paycheckCompute();
 }
 function paycheckCounts(events){
