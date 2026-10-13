@@ -1814,6 +1814,9 @@ body:has(#tab-shift.active) main{max-width:1540px}
 #paycheck-widget .paycheck-month-control label{font-size:.76rem;font-weight:900;color:#1b5e9b}
 #paycheck-widget .paycheck-month-control select{background:#fff;font-weight:850;font-size:.92rem;min-height:47px}
 #paycheck-widget .paycheck-month-control small{color:#537b9d;font-size:.68rem;line-height:1.45}
+#paycheck-widget .paycheck-month-variance{margin:10px 0 16px;padding:11px 12px;border:1px solid #a9c9e5;background:#f1f8ff;border-radius:12px;color:#194a71;font-size:.75rem;line-height:1.6}
+#paycheck-widget .paycheck-month-variance strong{display:block;font-size:.83rem;margin:3px 0;font-weight:900}
+#paycheck-widget .paycheck-result-value.is-forecast-range{font-size:clamp(1.05rem,3.6vw,1.5rem);letter-spacing:-.02em}
 #paycheck-widget .paycheck-vault{border-bottom:1px solid #dbe7f4;background:#f4faff}
 #paycheck-widget .paycheck-vault>summary{cursor:pointer;color:#226592;font-size:.8rem;font-weight:850;padding:12px 15px}
 #paycheck-widget .paycheck-vault-body{padding:0 15px 14px}
@@ -2160,6 +2163,7 @@ body:has(#tab-shift.active) main{max-width:1540px}
       <div class="paycheck-gross-summary"><span id="paycheck-gross-heading">예상 세전급여 (야간 전액 포함)</span><strong id="paycheck-gross">—</strong></div>
       <p id="paycheck-result-note">근무표 직원과 시급을 입력하면 계산합니다.</p>
       <p id="paycheck-profile-indicator" style="font-size:.7rem;color:#276e83;font-weight:800;margin:4px 0 9px">공제기준: 자동 추정 (개인 보험료 미등록)</p>
+      <div id="paycheck-month-variance" class="paycheck-month-variance" hidden aria-live="polite"></div>
       <div id="paycheck-result-lines" class="paycheck-result-lines"></div>
     </div>
     <div class="paycheck-duty-card"><h4>근무표 자동 분석</h4><div id="paycheck-shift-summary">근무표 데이터를 불러오는 중입니다.</div></div>
@@ -4555,6 +4559,7 @@ function paycheckRefreshShiftLink(){
     paycheckSelectedName='';
   }
   paycheckUpdateNameButtons();
+  if(paycheckPrivateLinkPending && paycheckPrivateLinkTryApply())return;
   if(paycheckUnlocked){
     paycheckApplyPrivateProfile();
     paycheckCompute();
@@ -4566,13 +4571,44 @@ function paycheckCounts(events){
   c.duties=c.weekdayNight+c.saturdayNight+c.sundayNight;
   return c;
 }
+function paycheckShowMonthVariance({counts,rate,nightCount,nightPolicy,nightHours,nightIncluded,night,gross,deductions,hasDeductions,autoDeductions,netEl,netBadge,netNote}){
+  const box=paycheckById('paycheck-month-variance');
+  if(!box)return;
+  const remainingNight=nightIncluded&&nightPolicy==='min'?Math.max(0,counts.duties-nightCount):0;
+  const hasScheduleDifference=remainingNight>0||counts.sundayDay>0||counts.saturdayNight>0;
+  if(!hasScheduleDifference)return;
+  const baseline=deductions===null?null:gross-deductions;
+  let message='근무표: 야간 '+counts.duties+'회 (현재 '+nightCount+'회 인정 가정)';
+  if(remainingNight>0){
+    const scenarioNight=paycheckCeil10(Math.floor(rate)*nightHours*0.5*counts.duties);
+    const extraNightGross=Math.max(0,scenarioNight-night);
+    const potentialGross=gross+extraNightGross;
+    const extraTax=autoDeductions.supported&&!hasDeductions?paycheckEstimateDeductions(potentialGross):null;
+    const potentialNet=extraTax?.supported?potentialGross-extraTax.total:null;
+    message+=' · 추가 야간 '+remainingNight+'회 전액 인정 가정 시 세전 +'+paycheckWon(extraNightGross);
+    if(potentialNet!==null&&baseline!==null&&potentialNet>baseline){
+      netEl.textContent=paycheckWon(baseline).replace('원','')+' ~ '+paycheckWon(potentialNet);
+      netEl.classList.add('is-forecast-range');
+      netBadge.textContent='추가근무 인정 미확정';
+      netNote.textContent='현재 '+nightCount+'회 인정 시 ~ 야간 '+counts.duties+'회 전액 인정 가정. 실제 지급액 확정 아님.';
+      message+=' · 세후 추가 가능액 '+paycheckWon(potentialNet-baseline);
+    }
+  }
+  if(counts.saturdayNight)message+=' · 토요일 야간 '+counts.saturdayNight+'회 (별도 연장시간 미확정)';
+  if(counts.sundayDay)message+=' · 일요일 주간 '+counts.sundayDay+'회 (유급 인정시간 미확정)';
+  message+=' · 1년치 명세서에서도 4회 당직의 실제 인정시간이 월마다 달라 회사 정산 확인 전 금액 확정 불가';
+  box.textContent=message;box.hidden=false;
+}
 function paycheckCompute(){
   if(!paycheckUnlocked)return;
   const grossEl=paycheckById('paycheck-gross'),note=paycheckById('paycheck-result-note');
   const lines=paycheckById('paycheck-result-lines'),summary=paycheckById('paycheck-shift-summary');
   const warnings=paycheckById('paycheck-review');
   paycheckById('paycheck-net').textContent='—';
+  paycheckById('paycheck-net').classList.remove('is-forecast-range');
   paycheckById('paycheck-net-note').textContent='공제액 자동 추정 또는 실제 공제 입력 후 표시합니다.';
+  const monthVariance=paycheckById('paycheck-month-variance');
+  if(monthVariance){monthVariance.hidden=true;monthVariance.textContent='';}
   const person=paycheckResolveName(paycheckById('paycheck-name')?.value),rate=Math.max(0,paycheckNumber('paycheck-rate'));
   if(!paycheckRoster || !paycheckRoster.people.length){
     summary.textContent=paycheckRoster?.message||'근무표를 먼저 업로드해 주세요.';
@@ -4639,6 +4675,7 @@ function paycheckCompute(){
   if(grossHeading)grossHeading.textContent=nightIncluded?'예상 세전급여 (야간 지급 가정)':nightPayment==='deferred'?'예상 세전 (야간 추후 지급)':'예상 세전 (야간 지급 미확인)';
   grossEl.textContent=paycheckWon(gross);
   note.textContent=`${person.name} · ${paycheckRoster.month} · ${baseEstimated?'기본급=시급×'+hours+'h−직책수당 (추정)':'기본급 직접 입력'} · 야간 ${nightCount}회 지급 가정`;
+  paycheckShowMonthVariance({counts,rate,nightCount,nightPolicy,nightHours,nightIncluded,night,gross,deductions,hasDeductions,autoDeductions,netEl,netBadge,netNote});
   lines.innerHTML=[
     line('기본급'+(baseEstimated?' (추정)':''),base),
     line('직책수당',role),line('고정 연장수당',fixedOT),line('고정 휴일수당',fixedHoliday),
@@ -4658,7 +4695,7 @@ function paycheckCompute(){
       ...(autoDeductions.other?[line('기타·상조회비',autoDeductions.other)]:[])
     ]:[]),
     deductions!==null?line(hasDeductions?'실제 공제액 입력':'자동 예상 공제합계',deductions):'<div class="paycheck-pay-row"><span>세후액</span><strong>공제 확인 필요</strong></div>',
-    ...(deductions!==null?[line('세후 예상 실수령액',gross-deductions,'net')]:[])
+    ...(deductions!==null?[line(counts.duties>nightCount&&nightIncluded?'현재 '+nightCount+'회 인정 기준 세후':'세후 예상 실수령액',gross-deductions,'net')]:[])
   ].join('');
   const review=[];
   if(paycheckProfileSource)review.push(paycheckProfileSource);
@@ -4722,9 +4759,15 @@ function paycheckValidatePrivateProfile(source){
     if(!Object.keys(record).length)throw new Error(key+' 공제자료가 비어 있습니다.');
     months[key]=record;
   }
+  const preferred=source.salaryDefaults;
+  const validDefault=preferred&&Number.isFinite(Number(preferred.rate))&&
+    Number(preferred.rate)>0&&Number(preferred.rate)<1000000&&
+    Number.isFinite(Number(preferred.role))&&Number(preferred.role)>=0&&
+    Number(preferred.role)<10000000&&/^20\d{2}-(0[1-9]|1[0-2])$/.test(preferred.asOf||'');
   return {format:'INY_PAYCHECK_DEDUCTIONS_V1',employee,
     aliases:[...new Set(aliases)],months,
-    carryForwardMaxMonths:Math.max(0,Math.min(3,Number(source.carryForwardMaxMonths)||0))};
+    carryForwardMaxMonths:Math.max(0,Math.min(3,Number(source.carryForwardMaxMonths)||0)),
+    ...(validDefault?{salaryDefaults:{rate:Number(preferred.rate),role:Number(preferred.role),asOf:preferred.asOf}}:{})};
 }
 function paycheckPrivateMatchesEmployee(profile,name){
   const actual=paycheckProfileName(name);
@@ -4747,6 +4790,12 @@ function paycheckApplyPrivateProfile(){
   const person=paycheckResolveName(paycheckById('paycheck-name')?.value);
   if(!profile||!person||!paycheckPrivateMatchesEmployee(profile,person.name))return false;
   const month=paycheckMonthInfo()?.key||'';
+  const defaults=profile.salaryDefaults;
+  if(defaults && month>=defaults.asOf){
+    const rateBox=paycheckById('paycheck-rate'),roleBox=paycheckById('paycheck-role');
+    if(rateBox&&rateBox.value.trim()==='')rateBox.value=String(defaults.rate);
+    if(roleBox&&roleBox.value.trim()==='')roleBox.value=String(defaults.role);
+  }
   const found=paycheckPrivatePeriod(profile,month);
   if(!found)return false;
   const mapping={pension:'paycheck-pension-actual',health:'paycheck-health-actual',
@@ -4874,6 +4923,78 @@ function paycheckForgetEncryptedProfile(){
   paycheckCompute();
   paycheckProfileMessage('이 기기의 암호화 공제자료를 삭제했습니다. 다른 기기의 자료에는 영향이 없습니다.');
 }
+
+// A one-time personal link carries locally decrypted data only in its URL fragment.
+// Browser never sends the fragment to Firebase Hosting or Firestore.
+let paycheckPrivateLinkPending=null;
+function paycheckPrivateLinkTryApply(){
+  const pending=paycheckPrivateLinkPending;
+  if(!pending || !paycheckUnlocked)return false;
+  if(!shiftScheduleStore || !shiftScheduleStore[pending.month])return false;
+  if(currentShiftMonth!==pending.month){
+    changeShiftMonth(pending.month);
+    return true;
+  }
+  if(!paycheckRoster?.people?.length)return false;
+  const profile=paycheckPrivateProfile;
+  const target=paycheckRoster.people.find(p=>
+    profile&&paycheckPrivateMatchesEmployee(profile,p.name));
+  if(!target)return false;
+  paycheckPrivateLinkPending=null;
+  const selector=paycheckById('paycheck-name');
+  if(selector)selector.value=target.name;
+  paycheckSelectedName=target.name;
+  paycheckUpdateNameButtons();
+  paycheckApplyPrivateProfile();
+  paycheckCompute();
+  paycheckProfileMessage('개인 링크로 공제내역 적용 완료. 9월 실제 공제액을 반영했습니다. 다음 접속에도 사용하려면 비밀번호로 암호화 저장하세요.');
+  return true;
+}
+async function paycheckPrivateLinkStartup(){
+  const fragment=location.hash.slice(1);
+  if(!fragment.startsWith('paycheck-private-v1.'))return;
+  try{
+    history.replaceState(history.state,'',location.pathname+location.search);
+  }catch(_){}
+  try{
+    const fields=fragment.split('.');
+    if(fields.length!==4 || !globalThis.crypto?.subtle ||
+      typeof DecompressionStream!=='function')throw new Error('이 브라우저에서는 개인 링크를 열 수 없습니다.');
+    const decode=part=>{
+      if(!/^[A-Za-z0-9_-]+$/.test(part))throw new Error('개인 링크 형식 오류');
+      return paycheckUnbase64(part.replace(/-/g,'+').replace(/_/g,'/')+
+        '='.repeat((4-part.length%4)%4));
+    };
+    const rawKey=decode(fields[1]),iv=decode(fields[2]),payload=decode(fields[3]);
+    if(rawKey.length!==32||iv.length!==12||payload.length>10000)
+      throw new Error('개인 링크 길이 오류');
+    const importedKey=await crypto.subtle.importKey('raw',rawKey,{name:'AES-GCM'},false,['decrypt']);
+    const binary=await crypto.subtle.decrypt({name:'AES-GCM',iv},importedKey,payload);
+    const inflated=new Blob([new Uint8Array(binary)]).stream().pipeThrough(new DecompressionStream('gzip'));
+    const contents=await new Response(inflated).text();
+    if(contents.length>20000)throw new Error('개인 자료 용량 초과');
+    const parsed=JSON.parse(contents);
+    const profile=paycheckValidatePrivateProfile(parsed.profile);
+    const month=/^20\d{2}-(0[1-9]|1[0-2])$/.test(parsed.month||'')?
+      parsed.month:Object.keys(profile.months).sort().at(-1);
+    paycheckPrivateProfile=profile;
+    paycheckPendingProfile=profile;
+    paycheckPrivateLinkPending={month};
+    const tab=[...document.querySelectorAll('.tab')].find(x=>x.textContent.includes('근무표'));
+    if(tab)tab.click();
+    paycheckUnlocked=true;
+    const locked=paycheckById('paycheck-locked');
+    const unlocked=paycheckById('paycheck-private');
+    if(locked)locked.hidden=true;
+    if(unlocked)unlocked.hidden=false;
+    paycheckPrivateLinkTryApply();
+    paycheckProfileMessage('개인 급여자료 링크를 읽었습니다. 근무표 동기화 후 자동으로 반영합니다. 공용 서버에는 저장하지 않습니다.');
+  }catch(error){
+    paycheckProfileMessage('개인 링크를 열지 못했습니다. 이전에 받은 .paycheck 파일을 사용해 주세요.');
+    console.warn('Private payroll link invalid:',error.name);
+  }
+}
+window.addEventListener('load',()=>{paycheckPrivateLinkStartup();});
 
 // ── 초기 렌더 ────────────────────────────────────────
 // 전역 노출 (Firebase module에서 접근)
