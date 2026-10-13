@@ -1,7 +1,38 @@
 {
   "hosting": {
     "public": "public",
-    "ignore": ["firebase.json"]
+    "ignore": [
+      "firebase.json"
+    ],
+    "headers": [
+      {
+        "source": "/",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-store, no-cache, max-age=0, must-revalidate"
+          }
+        ]
+      },
+      {
+        "source": "**/*.html",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-store, no-cache, max-age=0, must-revalidate"
+          }
+        ]
+      },
+      {
+        "source": "/sw.js",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, max-age=0, must-revalidate"
+          }
+        ]
+      }
+    ]
   },
   "firestore": {
     "rules": "firestore.rules"
