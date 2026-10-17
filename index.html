@@ -1899,7 +1899,7 @@ body:has(#tab-shift.active) main{max-width:1540px}
       <label style="background:#f59e0b;color:#fff;border-radius:8px;padding:6px 14px;font-size:.78rem;font-family:'Noto Sans KR',sans-serif;font-weight:600;cursor:pointer;">📂 불러오기<input type="file" accept=".json" onchange="importData(event)" style="display:none;"></label>
       <button onclick="resetData()" style="background:#ef4444;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:.78rem;font-family:'Noto Sans KR',sans-serif;font-weight:600;cursor:pointer;">🗑️ 초기화</button>
       <span class="badge">8종 관리</span>
-      <span id="sync-indicator" style="font-size:.75rem;color:#94b8d8;">⏳ Firebase 연결 중...</span><span style="font-size:.68rem;color:#cbd5e1;">v2026.10.16-hospital22-oct1</span>
+      <span id="sync-indicator" style="font-size:.75rem;color:#94b8d8;">⏳ Firebase 연결 중...</span><span style="font-size:.68rem;color:#cbd5e1;">v2026.10.17-paycheck-holiday3</span>
     </div>
   </div>
   <div id="header-handover-alert" class="header-alert">
@@ -2174,7 +2174,7 @@ body:has(#tab-shift.active) main{max-width:1540px}
       <div id="paycheck-result-lines" class="paycheck-result-lines"></div>
     </div>
     <details class="paycheck-actual-record" id="paycheck-actual-section">
-      <summary>📝 실제 급여명세서 기록 · 10월부터 월별 비교</summary>
+      <summary>📝 실제 명세서 기록 · 근무 산정월별 비교</summary>
       <div class="paycheck-actual-body">
         <p>급여명세서가 나오면 실제 지급총액과 공제총액을 입력해 주세요. 예측값과의 차이를 보관하되, 실제 금액으로 예측 계산식을 억지 보정하지 않습니다.</p>
         <div class="paycheck-field-grid">
@@ -2191,6 +2191,15 @@ body:has(#tab-shift.active) main{max-width:1540px}
     <div class="paycheck-duty-card"><h4>근무표 자동 분석</h4><div id="paycheck-shift-summary">근무표 데이터를 불러오는 중입니다.</div></div>
     <details class="paycheck-advanced"><summary>급여 기준·고정수당 · 추가근무 설정</summary>
       <div class="paycheck-advanced-inner">
+<div class="paycheck-field-grid">
+<label class="paycheck-field"><span>과거월 비교 기준</span><select id="paycheck-rule-period" onchange="paycheckCompute()"><option value="compare">7~9월도 병원 안내 규칙으로 비교 (잠정)</option><option value="auto">10월부터 적용 (기존)</option></select></label>
+<label class="paycheck-field"><span>기본급 역산 끝자리 (직접 입력 우선)</span><select id="paycheck-base-round" onchange="paycheckCompute()"><option value="floor">원미만 버림 (대조 후보)</option><option value="round">원 단위 반올림</option></select></label>
+<label class="paycheck-field"><span>인정시간 직접 입력 방식</span><select id="paycheck-extra-entry-mode" onchange="paycheckCompute()"><option value="total">해당 수당의 총 인정시간으로 대체</option><option value="add">자동 계산시간에 추가</option></select></label>
+<label class="paycheck-field"><span>입력 인정시간 근거</span><select id="paycheck-hours-basis" onchange="paycheckCompute()"><option value="manual-comparison">직접 입력 · 확인 필요</option><option value="company-confirmed">회사에서 시간 확인</option><option value="statement-implied">지급액 환산 · 예측 검증 아님</option></select></label>
+</div>
+<label class="paycheck-field"><span>원본 근무 정정 (계산기에만 적용)</span><textarea id="paycheck-work-annotations" rows="3" placeholder="YYYY-MM-DD=휴일종일&#10;YYYY-MM-DD=공휴일당직 / 17시30당직 / 대휴오전" oninput="paycheckCompute()" style="width:100%;box-sizing:border-box;border:1px solid #cbdbe8;border-radius:12px;padding:10px;font:inherit"></textarea></label>
+<p class="paycheck-explain">지급월과 근무 산정월을 구분하세요. 위 정정은 공유 근무표를 바꾸지 않습니다. 공휴일 종일은 8시간 후보, 오전 3인 근무는 대휴로 현금 0시간입니다. 직접 인정시간은 빈칸일 때 자동 계산, 0 입력 시 0시간으로 대체합니다.</p>
+
         <p class="paycheck-explain">통상시급에 직책수당이 포함된 급여체계는 기본급을 <b>시급 × 209시간 − 직책수당</b>으로 추정합니다. 고정연장 32시간 및 고정휴일 10시간은 1.5배로 계산합니다. 모든 직원에게 동일하다고 확정된 회사 규칙은 아니므로 아래에서 수정할 수 있습니다.</p>
         <div class="paycheck-field-grid">
           <label class="paycheck-field"><span>기본급 직접 입력 (원)</span><input id="paycheck-base" type="number" min="0" step="1" inputmode="numeric" placeholder="비우면 추정" oninput="paycheckCompute()"></label>
@@ -2204,9 +2213,9 @@ body:has(#tab-shift.active) main{max-width:1540px}
           <label class="paycheck-field"><span>야간수당 인정횟수 기준</span><select id="paycheck-night-policy" onchange="paycheckCompute()"><option value="min">기본 당직 횟수까지만 (가정)</option><option value="all">근무표 야간당직 전체 (가정)</option><option value="manual">직접 입력</option></select></label>
           <label class="paycheck-field"><span>야간 인정횟수 직접 입력</span><input id="paycheck-night-manual" type="number" min="0" step="1" inputmode="numeric" value="0" oninput="paycheckCompute()"></label>
           <label class="paycheck-field"><span>당직당 유급 야간시간</span><input id="paycheck-night-hours" type="number" min="0" step="0.5" inputmode="decimal" value="8" oninput="paycheckCompute()"></label>
-          <label class="paycheck-field"><span>평일 공휴일 13시 당직 날짜 (선택 · 쉼표 구분)</span><input id="paycheck-holiday-duty-dates" type="text" autocomplete="off" placeholder="예: 2026-10-09" oninput="paycheckCompute()"></label>
-          <label class="paycheck-field"><span>추가연장 직접 인정시간 (h · 병원 규칙 외 추가분만)</span><input id="paycheck-extra-ot" type="number" min="0" step="0.5" inputmode="decimal" placeholder="0" oninput="paycheckCompute()"></label>
-          <label class="paycheck-field"><span>별도 추가 휴일 인정시간 (h)</span><input id="paycheck-extra-holiday" type="number" min="0" step="0.5" inputmode="decimal" placeholder="0" oninput="paycheckCompute()"></label>
+          <label class="paycheck-field"><span>평일 공휴일 당직 날짜 (선택 · 쉼표 구분)</span><input id="paycheck-holiday-duty-dates" type="text" autocomplete="off" placeholder="예: 2026-10-09" oninput="paycheckCompute()"></label>
+          <label class="paycheck-field"><span>추가연장 총 인정시간 (h · 빈칸 자동)</span><input id="paycheck-extra-ot" type="number" min="0" step="0.5" inputmode="decimal" placeholder="자동" oninput="paycheckCompute()"></label>
+          <label class="paycheck-field"><span>추가휴일 총 인정시간 (h · 빈칸 자동)</span><input id="paycheck-extra-holiday" type="number" min="0" step="0.5" inputmode="decimal" placeholder="자동" oninput="paycheckCompute()"></label>
           <label class="paycheck-field"><span>공제대상 가족 수 (본인 포함)</span><select id="paycheck-tax-family" onchange="paycheckCompute()"><option value="1">1명 (기본)</option><option value="2">2명</option><option value="3">3명</option><option value="4">4명</option><option value="5">5명</option><option value="6">6명</option><option value="7">7명</option><option value="8">8명</option><option value="9">9명</option><option value="10">10명</option><option value="11">11명</option></select></label>
           <label class="paycheck-field"><span>8~20세 자녀 수</span><input id="paycheck-tax-children" type="number" min="0" step="1" value="0" oninput="paycheckCompute()"></label>
           <label class="paycheck-field"><span>원천징수 비율</span><select id="paycheck-tax-ratio" onchange="paycheckCompute()"><option value="100">100% (기본)</option><option value="80">80%</option><option value="120">120%</option></select></label>
@@ -2216,8 +2225,12 @@ body:has(#tab-shift.active) main{max-width:1540px}
           <label class="paycheck-field"><span>국민연금 기준소득월액 (원)</span><input id="paycheck-pension-base" type="number" min="0" step="1" placeholder="없으면 월급으로 추정" oninput="paycheckCompute()"></label>
           <label class="paycheck-field"><span>건강보험 보수월액 (원)</span><input id="paycheck-health-base" type="number" min="0" step="1" placeholder="없으면 월급으로 추정" oninput="paycheckCompute()"></label>
           <label class="paycheck-field"><span>비과세 급여 (원)</span><input id="paycheck-nontax" type="number" min="0" step="1" placeholder="0" oninput="paycheckCompute()"></label>
-          <label class="paycheck-field"><span>상조회비·별도 공제 (원)</span><input id="paycheck-association" type="number" min="0" step="1" placeholder="0" oninput="paycheckCompute()"></label>
-          <label class="paycheck-field"><span>추가수당 반올림 방식</span><select id="paycheck-round" onchange="paycheckCompute()"><option value="ceil10">시급 정수부 · 10원 올림</option><option value="won">실제 시급 · 원 단위 반올림</option></select></label>
+          <label class="paycheck-field"><span>상조회비 (원 · 개인별 확인)</span><input id="paycheck-association" type="number" min="0" step="1" placeholder="0" oninput="paycheckCompute()"></label>
+          <label class="paycheck-field"><span>기타공제 (상조회비와 별도 · 해당 월)</span><input id="paycheck-misc-deductions" type="number" min="0" step="1" placeholder="미입력 0" oninput="paycheckCompute()"></label>
+<label class="paycheck-field"><span>명세서 소득세 (선택)</span><input id="paycheck-income-actual" type="number" min="0" step="1" placeholder="비우면 간이세액표 예상" oninput="paycheckCompute()"></label>
+<label class="paycheck-field"><span>명세서 지방소득세 (선택)</span><input id="paycheck-local-actual" type="number" min="0" step="1" placeholder="비우면 소득세 기준" oninput="paycheckCompute()"></label>
+<label class="paycheck-field"><span>명세서 고용보험 (선택)</span><input id="paycheck-employment-actual" type="number" min="0" step="1" placeholder="비우면 예상" oninput="paycheckCompute()"></label>
+<label class="paycheck-field"><span>추가수당 반올림 방식</span><select id="paycheck-round" onchange="paycheckCompute()"><option value="period-default">8·9월 소수시급·원 반올림 후보 / 그 외 기존</option><option value="ceil10">시급 정수부 · 10원 올림</option><option value="won">실제 시급 · 원 단위 반올림</option></select></label>
         </div>
         <label class="paycheck-checkbox"><input id="paycheck-include-sunday" type="checkbox" onchange="paycheckCompute()"> 이전 월 비교용 일요일 주간 8시간×1.5배 포함 (2026년 10월 이후에는 병원 규칙으로 자동 포함)</label>
       </div>
@@ -4294,6 +4307,7 @@ const paycheckPrivateIds = [
   'paycheck-tax-family','paycheck-tax-children','paycheck-tax-ratio',
   'paycheck-pension-base','paycheck-health-base','paycheck-nontax','paycheck-association',
   'paycheck-pension-actual','paycheck-health-actual','paycheck-care-actual',
+  'paycheck-rule-period','paycheck-base-round','paycheck-extra-entry-mode','paycheck-hours-basis','paycheck-work-annotations','paycheck-misc-deductions','paycheck-income-actual','paycheck-local-actual','paycheck-employment-actual',
   'paycheck-round','paycheck-include-sunday'
 ];
 function paycheckById(id){return document.getElementById(id);}
@@ -4323,7 +4337,10 @@ function paycheckEstimateDeductions(gross){
   const children=Math.max(0,Math.floor(paycheckNumber('paycheck-tax-children')));
   const childCredit=children===0?0:children===1?20830:45830+Math.max(0,children-2)*33330;
   tax=floor10(Math.max(0,tax-childCredit)*Math.max(0,paycheckNumber('paycheck-tax-ratio')||100)/100);
-  const local=floor10(tax*.1);
+  const taxRaw=paycheckById('paycheck-income-actual')?.value.trim()||'';
+  if(taxRaw!=='')tax=Math.max(0,paycheckNumber('paycheck-income-actual'));
+  const localRaw=paycheckById('paycheck-local-actual')?.value.trim()||'';
+  const local=localRaw!==''?Math.max(0,paycheckNumber('paycheck-local-actual')):floor10(tax*.1);
   const pensionField=paycheckById('paycheck-pension-base')?.value.trim()||'';
   const healthField=paycheckById('paycheck-health-base')?.value.trim()||'';
   const pensionBase=pensionField!==''?Math.max(0,Number(pensionField)||0):taxable;
@@ -4339,9 +4356,12 @@ function paycheckEstimateDeductions(gross){
     floor10(healthBase*.03595);
   const care=careActualField!==''?Math.max(0,paycheckNumber('paycheck-care-actual')):
     floor10(health*.1314);
-  const employment=floor10(taxable*.009);
-  const other=Math.max(0,paycheckNumber('paycheck-association'));
-  return {supported:true,incomeTax:tax,localTax:local,pension,health,care,employment,other,
+  const employmentRaw=paycheckById('paycheck-employment-actual')?.value.trim()||'';
+  const employment=employmentRaw!==''?Math.max(0,paycheckNumber('paycheck-employment-actual')):floor10(taxable*.009);
+  const association=Math.max(0,paycheckNumber('paycheck-association'));
+  const misc=Math.max(0,paycheckNumber('paycheck-misc-deductions'));
+  const other=association+misc;
+  return {supported:true,incomeTax:tax,localTax:local,pension,health,care,employment,association,misc,other,
     total:tax+local+pension+health+care+employment+other,estimated:true,
     insuranceBasesEstimated:(pensionActualField===''&&pensionField==='')||
       (healthActualField===''&&healthField===''),actualPremiumsEntered:
@@ -4350,7 +4370,9 @@ function paycheckEstimateDeductions(gross){
 function paycheckCeil10(value){return Math.ceil((value-1e-8)/10)*10;}
 function paycheckContractAmounts(rate,role,hours,fixedOTHours,fixedHolidayHours,baseOverride,otOverride,holidayOverride){
   const hourly=Math.max(0,Number(rate)||0), allowance=Math.max(0,Number(role)||0);
-  const base=baseOverride===null?Math.max(0,Math.round(hourly*hours-allowance)):Math.max(0,Number(baseOverride)||0);
+  const baseRaw=hourly*hours-allowance;
+  const baseRounded=paycheckById('paycheck-base-round')?.value==='round'?Math.round(baseRaw):Math.floor(baseRaw+1e-7);
+  const base=baseOverride===null?Math.max(0,baseRounded):Math.max(0,Number(baseOverride)||0);
   const fixedOT=otOverride===null?paycheckCeil10(Math.floor(hourly)*fixedOTHours*1.5):Math.max(0,Number(otOverride)||0);
   const fixedHoliday=holidayOverride===null?paycheckCeil10(Math.floor(hourly)*fixedHolidayHours*1.5):Math.max(0,Number(holidayOverride)||0);
   return {base,fixedOT,fixedHoliday};
@@ -4458,7 +4480,8 @@ function paycheckResetInputs(){
   const defaults={'paycheck-hours':'209','paycheck-included':'3','paycheck-night-policy':'min',
     'paycheck-fixed-ot-hours':'32','paycheck-fixed-holiday-hours':'10','paycheck-night-payment':'paid',
     'paycheck-tax-family':'1','paycheck-tax-children':'0','paycheck-tax-ratio':'100',
-    'paycheck-night-manual':'0','paycheck-night-hours':'8','paycheck-round':'ceil10'};
+    'paycheck-night-manual':'0','paycheck-night-hours':'8','paycheck-round':'period-default',
+    'paycheck-rule-period':'compare','paycheck-base-round':'floor','paycheck-extra-entry-mode':'total','paycheck-hours-basis':'manual-comparison'};
   for(const id of paycheckPrivateIds){const e=paycheckById(id);if(!e)continue;
     if(e.type==='checkbox')e.checked=false;
     else e.value=Object.prototype.hasOwnProperty.call(defaults,id)?defaults[id]:'';
@@ -4522,7 +4545,8 @@ function paycheckClearMonthSpecificInputs(){
     'paycheck-night-manual','paycheck-pension-actual','paycheck-health-actual','paycheck-care-actual',
     'paycheck-association','paycheck-nontax','paycheck-pension-base','paycheck-health-base',
     'paycheck-holiday-duty-dates','paycheck-actual-gross','paycheck-actual-deductions',
-    'paycheck-actual-ot','paycheck-actual-holiday']){
+    'paycheck-actual-ot','paycheck-actual-holiday',
+    'paycheck-work-annotations','paycheck-misc-deductions','paycheck-income-actual','paycheck-local-actual','paycheck-employment-actual','paycheck-base']){
     const field=paycheckById(id);
     if(field)field.value='';
   }
@@ -4530,6 +4554,7 @@ function paycheckClearMonthSpecificInputs(){
   if(sunday)sunday.checked=false;
   const mode=paycheckById('paycheck-night-policy');
   if(mode && mode.value==='manual')mode.value='min';
+  for(const [id,value] of [['paycheck-extra-entry-mode','total'],['paycheck-hours-basis','manual-comparison'],['paycheck-round','period-default']]){const node=paycheckById(id);if(node)node.value=value;}
 }
 function paycheckChangeMonth(monthKey){
   if(!monthKey||!shiftScheduleStore||!shiftScheduleStore[monthKey])return;
@@ -4592,9 +4617,9 @@ function paycheckRefreshShiftLink(){
   }
 }
 function paycheckCounts(events){
-  const c={weekdayNight:0,saturdayNight:0,sundayNight:0,sundayDay:0,toban:0,phlebotomy:0,lunch:0,off:0,compLeave:0,leave:0,changed:0};
+  const c={weekdayNight:0,saturdayNight:0,sundayNight:0,sundayDay:0,holidayEarlyNight:0,holidayLateNight:0,holidayFullDay:0,compMorning:0,toban:0,phlebotomy:0,lunch:0,off:0,compLeave:0,leave:0,changed:0};
   for(const e of events){if(Object.prototype.hasOwnProperty.call(c,e.type))c[e.type]++;if(e.changed)c.changed++;}
-  c.duties=c.weekdayNight+c.saturdayNight+c.sundayNight;
+  c.duties=c.weekdayNight+c.saturdayNight+c.sundayNight+c.holidayEarlyNight+c.holidayLateNight;
   return c;
 }
 function paycheckShowMonthVariance({counts,rate,nightCount,nightPolicy,nightHours,nightIncluded,night,gross,deductions,hasDeductions,autoDeductions,netEl,netBadge,netNote}){
@@ -4686,7 +4711,7 @@ function paycheckRecordActualMonth(){
   const report=value=>{if(message)message.textContent=value;};
   const person=paycheckResolveName(paycheckById('paycheck-name')?.value);
   const month=paycheckMonthInfo()?.key;
-  if(!person||!month||month<'2026-10'){report('2026년 10월 이후의 근무표 직원·급여월을 선택하세요.');return;}
+  if(!person||!month){report('근무표 직원과 명세서의 근무 산정월을 선택하세요.');return;}
   if(paycheckPrivateProfile&&!paycheckPrivateMatchesEmployee(paycheckPrivateProfile,person.name)){
     report('다른 직원의 개인 급여 기록에는 저장할 수 없습니다. 먼저 개인 자료 잠금·초기화하세요.');return;
   }
@@ -4711,7 +4736,7 @@ function paycheckRecordActualMonth(){
     holidayHours=readHours('paycheck-actual-holiday');
   }catch(error){report(error.message);return;}
   const forecast=paycheckLatestPrediction?.employee===person.name&&
-    paycheckLatestPrediction?.month===month?paycheckLatestPrediction:null;
+    paycheckLatestPrediction?.month===month&&paycheckLatestPrediction?.kind==='schedule-estimate'?paycheckLatestPrediction:null;
   const actual={gross,deductions,otHours,holidayHours,
     predictedGross:forecast?.gross??null,predictedNet:forecast?.net??null,
     ruleVersion:forecast?.ruleVersion||'no-forecast'};
@@ -4732,6 +4757,122 @@ function paycheckRecordActualMonth(){
   }catch(error){report('기록 검증 실패: '+error.message);}
 }
 
+function paycheckResolveRecognizedHours(automatic,raw,mode){
+ const base=Number(automatic);if(!Number.isFinite(base)||base<0)throw new Error('자동 인정시간 오류');
+ if(raw===null||raw===undefined||String(raw).trim()==='')return base;
+ const v=Number(raw);if(!Number.isFinite(v)||v<0||v>744)throw new Error('인정시간은 0~744시간으로 입력하세요.');
+ return mode==='add'?base+v:v;
+}
+function paycheckVariableAllowance(rate,hours,mode){
+ const w=Number(rate),h=Number(hours);if(!Number.isFinite(w)||!Number.isFinite(h)||w<0||h<0)throw new Error('시급·시간 오류');
+ const month=paycheckMonthInfo()?.key||'';
+ const exact=mode==='won'||mode==='observed'||(mode==='period-default'&&month>='2026-08'&&month<='2026-09');
+ if(!exact)return paycheckCeil10(Math.floor(w)*h*1.5);
+ const numerator=Math.round(w*100)*Math.round(h*1000)*3;
+ if(!Number.isSafeInteger(numerator))throw new Error('금액 계산 범위 초과');
+ return Math.floor((numerator+100000)/200000);
+}
+function paycheckApplyWorkAnnotations(person,raw,month){
+ const result={...person,events:(person?.events||[]).map(e=>({...e}))};
+ const types={'휴일종일':'holidayFullDay','공휴일당직':'holidayEarlyNight','13시당직':'holidayEarlyNight','17시30당직':'holidayLateNight','대휴오전':'compMorning'};
+ const entries=String(raw||'').split(/[\n,;]+/).map(x=>x.trim()).filter(Boolean),seen=new Set();
+ for(const entry of entries){
+  const m=/^(20\d\d-\d\d-\d\d)\s*=\s*(\S+)$/.exec(entry);
+  if(!m||!types[m[2]])throw new Error('근무 정정은 YYYY-MM-DD=휴일종일/공휴일당직/17시30당직/대휴오전 형식입니다.');
+  const date=m[1],day=Number(date.slice(8)),[y,mo]=date.split('-').map(Number);
+  if(date.slice(0,7)!==month||mo<1||mo>12||day<1||day>new Date(y,mo,0).getDate()||seen.has(date))throw new Error('현재 월의 유효한 날짜를 중복 없이 입력하세요.');
+  seen.add(date);
+  const replaceable=new Set(['weekdayNight','saturdayNight','sundayNight','sundayDay','phlebotomy','holidayFullDay','holidayEarlyNight','holidayLateNight','compMorning']);
+  result.events=result.events.filter(e=>e.date!==date||!replaceable.has(e.type));
+  result.events.push({date,day,type:types[m[2]],label:m[2],changed:false,source:'원본 확인 후 입력한 근무 정정'});
+ }
+ return result;
+}
+const PAYCHECK_2026_PUBLIC_HOLIDAYS = new Set([
+ '2026-01-01','2026-02-16','2026-02-17','2026-02-18',
+ '2026-03-01','2026-03-02','2026-05-01','2026-05-05',
+ '2026-05-24','2026-05-25','2026-06-03','2026-06-06',
+ '2026-07-17','2026-08-15','2026-08-17',
+ '2026-09-24','2026-09-25','2026-09-26',
+ '2026-10-03','2026-10-05','2026-10-09','2026-12-25'
+]);
+function paycheckHolidayPhlebotomyEvidence(person){
+ const assignedByDate=new Map();
+ for(const employee of paycheckRoster?.people||[]){
+  for(const e of employee.events||[]){
+   if(e.type!=='phlebotomy')continue;
+   if(!assignedByDate.has(e.date))assignedByDate.set(e.date,new Set());
+   assignedByDate.get(e.date).add(employee.name);
+  }
+ }
+ const singleDays=[],compDays=[],reviewDays=[];
+ for(const e of person?.events||[]){
+  if(e.type!=='phlebotomy'||!PAYCHECK_2026_PUBLIC_HOLIDAYS.has(e.date))continue;
+  const count=assignedByDate.get(e.date)?.size||0;
+  if(count===3){compDays.push(e.date);continue;}
+  if(count!==1){reviewDays.push(e.date);continue;}
+  const overlaps=(person.events||[]).some(other=>other.date===e.date&&[
+   'weekdayNight','saturdayNight','sundayNight','sundayDay',
+   'holidayEarlyNight','holidayLateNight','holidayFullDay'].includes(other.type));
+  if(overlaps){reviewDays.push(e.date);continue;}
+  singleDays.push(e.date);
+ }
+ return {singleDays:[...new Set(singleDays)],compDays:[...new Set(compDays)],reviewDays:[...new Set(reviewDays)]};
+}
+function paycheckCrossCheckDutyEstimate(person){
+ const month=paycheckMonthInfo()?.key||'',historical=paycheckById('paycheck-rule-period')?.value==='compare';
+ if(month<'2026-10'&&!(historical&&month>='2026-07'))return null;
+ const e=person?.events||[],requested=(paycheckById('paycheck-holiday-duty-dates')?.value||'').split(/[\s,，;；]+/).filter(Boolean);
+ const wd=e.filter(x=>x.type==='weekdayNight');
+ const manualMarked=new Set(requested.filter(x=>x.startsWith(month+'-')&&wd.some(v=>v.date===x)));
+ const marked=new Set([...manualMarked,...wd.filter(v=>PAYCHECK_2026_PUBLIC_HOLIDAYS.has(v.date)).map(v=>v.date)]);
+ const n=t=>e.filter(x=>x.type===t).length;
+ const w=wd.length-marked.size,s=n('saturdayNight')+n('holidayEarlyNight')+marked.size,sun=n('sundayNight')+n('holidayLateNight'),day=n('sundayDay'),full=n('holidayFullDay');
+ const phleb=paycheckHolidayPhlebotomyEvidence(person);
+ const weighted=6*w+10*s+6*sun;
+ return {version:month<'2026-10'?'hospital22-historical-comparison-v3':'hospital22-provisional-v3',
+  month,baseline:22,weekdayCount:w,holidayCount:s,sundayNight:sun,sundayDay:day,
+  holidayFullDay:full,compMorning:n('compMorning'),weighted,
+  overtimeHours:Math.max(0,weighted-22),holidayHours:8*(day+full+phleb.singleDays.length),
+  holidayPhlebotomyPaidDates:phleb.singleDays,holidayPhlebotomyCompDates:phleb.compDays,
+  holidayPhlebotomyReviewDates:phleb.reviewDays,
+  manualHolidayCount:manualMarked.size,automaticHolidayDutyCount:marked.size-manualMarked.size,
+  hasUncheckedHoliday:requested.length===0,
+  invalidHolidayEntries:requested.filter(x=>!marked.has(x)),provisional:true,historicalComparison:month<'2026-10'};
+}
+const PAYCHECK_MONTHLY_INPUTS={rate:'paycheck-rate',base:'paycheck-base',role:'paycheck-role',pension:'paycheck-pension-actual',health:'paycheck-health-actual',care:'paycheck-care-actual',association:'paycheck-association',misc:'paycheck-misc-deductions',incomeTax:'paycheck-income-actual',localTax:'paycheck-local-actual',employment:'paycheck-employment-actual',overtimeHours:'paycheck-extra-ot',holidayHours:'paycheck-extra-holiday'};
+function paycheckNormalizeMonthlyPayData(input){
+ if(input===undefined||input===null)return {};
+ if(typeof input!=='object'||Array.isArray(input))throw new Error('개인 월별 입력자료 형식 오류');
+ const output={};if(Object.keys(input).length>60)throw new Error('개인 월별 입력은 60개월 이내로 보관하세요.');
+ for(const [month,record] of Object.entries(input)){
+  if(!/^20\d\d-(0[1-9]|1[0-2])$/.test(month)||!record||typeof record!=='object')throw new Error('개인 입력자료 산정월 오류');
+  const clean={};
+  for(const key of Object.keys(PAYCHECK_MONTHLY_INPUTS)){
+   const raw=record[key];if(raw===null||raw===undefined||raw==='')continue;
+   const v=Number(raw),limit=key.endsWith('Hours')?744:100000000;
+   if(!Number.isFinite(v)||v<0||v>limit)throw new Error('개인 입력자료 금액·시간 오류');clean[key]=v;
+  }
+  if(record.annotations){clean.annotations=String(record.annotations).slice(0,4000);paycheckApplyWorkAnnotations({events:[]},clean.annotations,month);}
+  clean.hoursBasis=['company-confirmed','statement-implied','manual-comparison'].includes(record.hoursBasis)?record.hoursBasis:'manual-comparison';
+  clean.extraMode=record.extraMode==='add'?'add':'total';clean.extraRounding=['won','ceil10','period-default'].includes(record.extraRounding)?record.extraRounding:'period-default';
+  clean.statementLabel=String(record.statementLabel||'').slice(0,80);clean.paymentDate=/^20\d\d-\d\d-\d\d$/.test(record.paymentDate||'')?record.paymentDate:'';
+  output[month]=clean;
+ }
+ return output;
+}
+function paycheckApplyMonthlyPayData(data){
+ if(!data)return false;
+ for(const [key,id]of Object.entries(PAYCHECK_MONTHLY_INPUTS)){const node=paycheckById(id);if(node&&data[key]!==undefined)node.value=String(data[key]);}
+ const options={'paycheck-work-annotations':data.annotations||'','paycheck-extra-entry-mode':data.extraMode||'total','paycheck-round':data.extraRounding||'period-default','paycheck-hours-basis':data.hoursBasis||'manual-comparison'};
+ for(const [id,value]of Object.entries(options)){const node=paycheckById(id);if(node)node.value=value;}
+ return true;
+}
+function paycheckReadMonthlyPayData(){
+ const record={};for(const [key,id]of Object.entries(PAYCHECK_MONTHLY_INPUTS)){const raw=paycheckById(id)?.value?.trim()||'';if(raw!=='')record[key]=Number(raw);}
+ record.annotations=paycheckById('paycheck-work-annotations')?.value||'';record.extraMode=paycheckById('paycheck-extra-entry-mode')?.value||'total';record.extraRounding=paycheckById('paycheck-round')?.value||'period-default';record.hoursBasis=paycheckById('paycheck-hours-basis')?.value||'manual-comparison';return record;
+}
+
 function paycheckCompute(){
   if(!paycheckUnlocked)return;
   paycheckLatestPrediction=null;
@@ -4743,7 +4884,10 @@ function paycheckCompute(){
   paycheckById('paycheck-net-note').textContent='공제액 자동 추정 또는 실제 공제 입력 후 표시합니다.';
   const monthVariance=paycheckById('paycheck-month-variance');
   if(monthVariance){monthVariance.hidden=true;monthVariance.textContent='';}
-  const person=paycheckResolveName(paycheckById('paycheck-name')?.value),rate=Math.max(0,paycheckNumber('paycheck-rate'));
+  const rawPerson=paycheckResolveName(paycheckById('paycheck-name')?.value),rate=Math.max(0,paycheckNumber('paycheck-rate'));
+  let person=rawPerson;
+  try{if(person)person=paycheckApplyWorkAnnotations(person,paycheckById('paycheck-work-annotations')?.value,paycheckMonthInfo()?.key);}
+  catch(error){grossEl.textContent='—';lines.textContent='';note.textContent='근무 정정 확인 필요';warnings.textContent=error.message;return;}
   if(!paycheckRoster || !paycheckRoster.people.length){
     summary.textContent=paycheckRoster?.message||'근무표를 먼저 업로드해 주세요.';
     grossEl.textContent='—';lines.textContent='';note.textContent='근무표 자동 매핑을 확인할 수 없습니다.';
@@ -4755,7 +4899,7 @@ function paycheckCompute(){
     warnings.textContent='근무표 분석은 완료됐습니다. 직원 선택 후 확인하세요.';return;
   }
   const counts=paycheckCounts(person.events),h=paycheckEscape;
-  const hospital=paycheckHospitalDutyEstimate(person);
+  const hospital=paycheckCrossCheckDutyEstimate(person);
   summary.innerHTML=`<div class="paycheck-duty-stats">
     <div class="paycheck-duty-stat"><strong>${counts.duties}</strong><small>야간당직</small></div>
     <div class="paycheck-duty-stat"><strong>${counts.sundayDay}</strong><small>일요일 주간</small></div>
@@ -4784,13 +4928,17 @@ function paycheckCompute(){
   const nightHours=Math.max(0,paycheckNumber('paycheck-night-hours'));
   const night=paycheckCeil10(Math.floor(rate)*nightHours*0.5*nightCount);
   const manualOTHours=Math.max(0,paycheckNumber('paycheck-extra-ot'));
-  const extraOTHours=manualOTHours+(hospital?hospital.overtimeHours:0);
   const manualHolidayHours=Math.max(0,paycheckNumber('paycheck-extra-holiday'));
   const sundayHours=hospital?hospital.holidayHours:
     (paycheckById('paycheck-include-sunday').checked?counts.sundayDay*8:0);
-  const holidayHours=manualHolidayHours+sundayHours;
+  const entryMode=paycheckById('paycheck-extra-entry-mode')?.value||'total';
+  let extraOTHours,holidayHours;
+  try{
+    extraOTHours=paycheckResolveRecognizedHours(hospital?.overtimeHours||0,paycheckById('paycheck-extra-ot').value,entryMode);
+    holidayHours=paycheckResolveRecognizedHours(sundayHours,paycheckById('paycheck-extra-holiday').value,entryMode);
+  }catch(error){grossEl.textContent='—';lines.textContent='';note.textContent='인정시간 확인 필요';warnings.textContent=error.message;return;}
   const roundMode=paycheckById('paycheck-round').value;
-  const extraPay=(n)=>roundMode==='won'?Math.round(rate*n*1.5):paycheckCeil10(Math.floor(rate)*n*1.5);
+  const extraPay=(n)=>paycheckVariableAllowance(rate,n,roundMode);
   const extraOT=extraPay(extraOTHours),holiday=extraPay(holidayHours);
   const nightPayment=paycheckById('paycheck-night-payment').value;
   const nightIncluded=nightPayment==='paid';
@@ -4817,21 +4965,24 @@ function paycheckCompute(){
   note.textContent=`${person.name} · ${paycheckRoster.month} · ${baseEstimated?'기본급=시급×'+hours+'h−직책수당 (추정)':'기본급 직접 입력'} · 야간 ${nightCount}회 지급 가정`;
   if(hospital && monthVariance){
     monthVariance.hidden=false;
-    monthVariance.textContent='2026년 10월부터 병원 안내 잠정규칙 적용 · 평일 당직 '+hospital.weekdayCount+
-      '회 × 6h + 토요일/13시 공휴일 당직 '+hospital.holidayCount+
+    monthVariance.textContent=(hospital.historicalComparison?'과거월에 현재 안내 규칙을 대입한 비교 · ':'병원 안내 잠정규칙 적용 · ')+'평일 당직 '+hospital.weekdayCount+
+      '회 × 6h + 토·공휴일 당직 '+hospital.holidayCount+
       '회 × 10h + 일요일 야간 '+hospital.sundayNight+
       '회 × 6h = '+hospital.weighted+'h, 기본 22h 차감 → 추가연장 '+
-      hospital.overtimeHours+'h · 일요일 주간 '+hospital.sundayDay+
-      '회 × 8h = 추가휴일 '+hospital.holidayHours+
+      hospital.overtimeHours+'h · 일요일 주간 '+hospital.sundayDay+'회 + 공휴일 종일 '+hospital.holidayFullDay+
+      '회 + 공휴일 채혈실 1인 '+hospital.holidayPhlebotomyPaidDates.length+'회 (각 8h) = 추가휴일 '+hospital.holidayHours+
       'h. 기존 야간수당은 기본 '+included+'회 지급 가정. 실제 정산·공휴일 구분·공제는 미확정.';
     netBadge.textContent=hasDeductions?'입력 공제기준 · 병원 잠정규칙':'병원 안내 잠정규칙';
-    netNote.textContent='근무표 기반 예상액 · 2026.10.15 병원 안내 적용 · 실제 급여명세서와 비교 필요';
+    netNote.textContent='근무표 기반 비교값 · 과거 시행일·인정시간 미확정 · 실제 공제와 별도 대조';
   }else{
     paycheckShowMonthVariance({counts,rate,nightCount,nightPolicy,nightHours,nightIncluded,night,gross,deductions,hasDeductions,autoDeductions,netEl,netBadge,netNote});
   }
   paycheckLatestPrediction={employee:person.name,month:paycheckRoster.month,
     gross,net:deductions===null?null:gross-deductions,deductions,
     extraOvertimeHours:extraOTHours,extraHolidayHours:holidayHours,
+    scheduleOvertimeHours:hospital?.overtimeHours||0,scheduleHolidayHours:sundayHours,
+    kind:(paycheckById('paycheck-extra-ot').value.trim()!==''||paycheckById('paycheck-extra-holiday').value.trim()!=='')?'recognized-input-reconstruction':'schedule-estimate',
+    hoursBasis:paycheckById('paycheck-hours-basis')?.value||'manual-comparison',
     ruleVersion:hospital?.version||'pre-2026-10-legacy'};
   lines.innerHTML=[
     line('기본급'+(baseEstimated?' (추정)':''),base),
@@ -4849,13 +5000,24 @@ function paycheckCompute(){
       line('예상 건강보험',autoDeductions.health),
       line('예상 장기요양보험',autoDeductions.care),
       line('예상 고용보험',autoDeductions.employment),
-      ...(autoDeductions.other?[line('기타·상조회비',autoDeductions.other)]:[])
+      line('상조회비',autoDeductions.association||0),
+      line('기타공제 (해당 월)',autoDeductions.misc||0)
     ]:[]),
     deductions!==null?line(hasDeductions?'실제 공제액 입력':'자동 예상 공제합계',deductions):'<div class="paycheck-pay-row"><span>세후액</span><strong>공제 확인 필요</strong></div>',
     ...(deductions!==null?[line(counts.duties>nightCount&&nightIncluded?'현재 '+nightCount+'회 인정 기준 세후':'세후 예상 실수령액',gross-deductions,'net')]:[])
   ].join('');
   const review=[];
   if(paycheckProfileSource)review.push(paycheckProfileSource);
+  if(baseEstimated)review.push('기본급 역산의 끝자리 방식은 대조 후보입니다. 소수 둘째 자리 시급만으로 계약 기본급이 유일하게 결정되지는 않습니다.');
+  const entered=paycheckById('paycheck-extra-ot').value.trim()!==''||paycheckById('paycheck-extra-holiday').value.trim()!=='';
+  if(entered){
+    const basis=paycheckById('paycheck-hours-basis')?.value||'manual-comparison';
+    const label=basis==='company-confirmed'?'회사 확인시간':basis==='statement-implied'?'지급액 환산시간 (자동예측 검증 아님)':'직접 입력시간 (확인 필요)';
+    netBadge.textContent=label;
+    netNote.textContent=label+' 적용 · '+(entryMode==='add'?'자동시간에 추가':'자동시간 대신 총시간 적용');
+    review.push(label+': 연장 '+extraOTHours+'h / 휴일 '+holidayHours+'h. 근무표 후보는 연장 '+(hospital?.overtimeHours||0)+'h / 휴일 '+sundayHours+'h.');
+  }
+  if(paycheckById('paycheck-association').value.trim()==='')review.push('상조회비가 미입력되어 0원으로 계산 중입니다. 본인 명세서에서 확인하세요.');
   const sourceLabel=paycheckById('paycheck-profile-indicator');
   if(sourceLabel)sourceLabel.textContent=paycheckProfileSource||'공제기준: 2026년 보험요율 자동 추정 (개인 보험료 미등록)';
   if(baseEstimated)review.push('통상시급×월 기준시간에서 직책수당을 제외한 기본급 추정치입니다. 계약 기본급과 다른 경우 직접 입력하세요.');
@@ -4867,9 +5029,12 @@ function paycheckCompute(){
   review.push('야간수당 인정횟수는 회사 정산규칙 미확정이므로 현재 선택한 기준의 가정치입니다.');
   if(hospital){
     review.push('병원 2026.10.15 안내 잠정 적용: 기본 22시간 차감, 당직 3회 미만에도 기본분 가정, 일요일 주간 8시간 × 1.5.');
-    if(hospital.hasUncheckedHoliday)review.push('평일 공휴일 오후 1시 당직이 있다면 고급설정에 해당 날짜를 입력하세요. 공휴일 오전 3인 근무는 현금수당 0원·대휴 처리.');
+    if(hospital.hasUncheckedHoliday)review.push('2026년 법정공휴일은 자동 판별합니다. 별도 임시공휴일은 실제 근무 분류를 확인하세요. 공휴일 채혈실 3인은 현금수당 0원·대체휴무 처리.');
+    if(hospital.holidayPhlebotomyPaidDates.length)review.push('공휴일 채혈실 1명·주간 8시간 인정: '+hospital.holidayPhlebotomyPaidDates.join(', '));
+    if(hospital.holidayPhlebotomyCompDates.length)review.push('공휴일 채혈실 3명·대체휴무(추가수당 제외): '+hospital.holidayPhlebotomyCompDates.join(', '));
+    if(hospital.holidayPhlebotomyReviewDates.length)review.push('공휴일 채혈실 인원/겹치는 당직 확인 필요: '+hospital.holidayPhlebotomyReviewDates.join(', '));
     if(hospital.invalidHolidayEntries.length)review.push('공휴일 당직 날짜 중 이번 달 평일 당직으로 확인되지 않은 값: '+hospital.invalidHolidayEntries.join(', '));
-    if(manualOTHours||manualHolidayHours)review.push('병원 자동 인정시간 외 직접 추가 입력분은 별도 승인시간이어야 합니다. 중복 반영되지 않았는지 확인하세요.');
+    if(entered)review.push(entryMode==='add'?'추가분 입력 방식: 총 인정시간을 넣으면 중복될 수 있습니다.':'총 인정시간 대체 방식: 자동 계산시간을 다시 더하지 않았습니다.');
     review.push('2026년 8월 6시간 차이와 2월 대체휴무 판정은 소급 보정하지 않았습니다.');
   }else{
     if(counts.saturdayNight)review.push(`토요일 야간 ${counts.saturdayNight}회: 평일 대비 4.5시간은 별도 현금 지급이 확인되지 않아 자동 가산하지 않았습니다.`);
@@ -4959,7 +5124,7 @@ function paycheckValidatePrivateProfile(source){
     Number.isFinite(Number(preferred.role))&&Number(preferred.role)>=0&&
     Number(preferred.role)<10000000&&/^20\d{2}-(0[1-9]|1[0-2])$/.test(preferred.asOf||'');
   return {format:'INY_PAYCHECK_DEDUCTIONS_V1',employee,
-    aliases:[...new Set(aliases)],months,actualRecords,
+    aliases:[...new Set(aliases)],months,actualRecords,monthlyPayData:paycheckNormalizeMonthlyPayData(source.monthlyPayData),
     carryForwardMaxMonths:Math.max(0,Math.min(3,Number(source.carryForwardMaxMonths)||0)),
     ...(validDefault?{salaryDefaults:{rate:Number(preferred.rate),role:Number(preferred.role),asOf:preferred.asOf}}:{})};
 }
@@ -4984,6 +5149,7 @@ function paycheckApplyPrivateProfile(){
   const person=paycheckResolveName(paycheckById('paycheck-name')?.value);
   if(!profile||!person||!paycheckPrivateMatchesEmployee(profile,person.name))return false;
   const month=paycheckMonthInfo()?.key||'';
+  const exactApplied=paycheckApplyMonthlyPayData(profile.monthlyPayData?.[month]);
   const defaults=profile.salaryDefaults;
   if(defaults && month>=defaults.asOf){
     const rateBox=paycheckById('paycheck-rate'),roleBox=paycheckById('paycheck-role');
@@ -4991,13 +5157,14 @@ function paycheckApplyPrivateProfile(){
     if(roleBox&&roleBox.value.trim()==='')roleBox.value=String(defaults.role);
   }
   const found=paycheckPrivatePeriod(profile,month);
-  if(!found)return false;
+  if(!found)return exactApplied;
   const mapping={pension:'paycheck-pension-actual',health:'paycheck-health-actual',
     care:'paycheck-care-actual',association:'paycheck-association'};
   for(const [key,id] of Object.entries(mapping)){
     const node=paycheckById(id);
     if(node && found.record[key]!==undefined)node.value=String(found.record[key]);
   }
+  if(exactApplied)paycheckApplyMonthlyPayData(profile.monthlyPayData?.[month]);
   paycheckProfileSource=found.provisional?
     '내 '+found.month+' 공제기준을 '+month+'에 임시 적용 · 실제 변경 여부 확인 필요':
     '내 '+month+' 명세서 공제기록 적용';
@@ -5099,7 +5266,7 @@ function paycheckSaveCurrentMonthProfile(){
   if(!Object.keys(record).length){paycheckProfileMessage('저장할 실제 보험료나 상조회비를 먼저 입력하세요.');return;}
   const base=paycheckPrivateProfile||{format:'INY_PAYCHECK_DEDUCTIONS_V1',employee:employee.name,
     aliases:[employee.name],months:{},carryForwardMaxMonths:0};
-  const full=paycheckValidatePrivateProfile({...base,months:{...base.months,[month]:record}});
+  const full=paycheckValidatePrivateProfile({...base,months:{...base.months,[month]:record},monthlyPayData:{...(base.monthlyPayData||{}),[month]:paycheckReadMonthlyPayData()}});
   paycheckPendingProfile=full;
   paycheckPrivateProfile=full;
   paycheckApplyPrivateProfile();
