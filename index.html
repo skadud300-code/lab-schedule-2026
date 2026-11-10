@@ -1899,7 +1899,7 @@ body:has(#tab-shift.active) main{max-width:1540px}
       <label style="background:#f59e0b;color:#fff;border-radius:8px;padding:6px 14px;font-size:.78rem;font-family:'Noto Sans KR',sans-serif;font-weight:600;cursor:pointer;">📂 불러오기<input type="file" accept=".json" onchange="importData(event)" style="display:none;"></label>
       <button onclick="resetData()" style="background:#ef4444;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:.78rem;font-family:'Noto Sans KR',sans-serif;font-weight:600;cursor:pointer;">🗑️ 초기화</button>
       <span class="badge">8종 관리</span>
-      <span id="sync-indicator" style="font-size:.75rem;color:#94b8d8;">⏳ Firebase 연결 중...</span><span style="font-size:.68rem;color:#cbd5e1;">v2026.11.10-paycheck-sat-holiday4</span>
+      <span id="sync-indicator" style="font-size:.75rem;color:#94b8d8;">⏳ Firebase 연결 중...</span><span style="font-size:.68rem;color:#cbd5e1;">v2026.11.10-paycheck-personal-deductions5</span>
     </div>
   </div>
   <div id="header-handover-alert" class="header-alert">
@@ -2129,6 +2129,7 @@ body:has(#tab-shift.active) main{max-width:1540px}
       <summary>🔐 내 보험료·상조회비 자동 적용 (한 번 등록)</summary>
       <div class="paycheck-vault-body">
         <p>본인 공제 파일을 불러오면 월별 보험료와 상조회비를 해당 직원에게만 적용합니다. 공용 Firebase에는 올리지 않습니다.</p>
+        <p>최근 명세서의 국민연금·건강보험·장기요양보험·상조회비를 같은 직원의 다음 최대 12개월 예상에 임시 사용합니다. 소득세·지방소득세·고용보험은 계산월 급여로 다시 계산합니다. 연초 보험요율·4월 건강보험 정산·7월 국민연금 기준소득월액 변경 시 실제 공제를 재확인해야 합니다. 영구 보관은 암호화 저장 후 가능합니다.</p>
         <label class="paycheck-field"><span>개인 공제 파일 (.paycheck)</span><input type="file" id="paycheck-profile-file" accept=".paycheck,.json" onchange="paycheckImportPrivateFile(event)"></label>
         <label class="paycheck-field"><span>암호화 보관용 비밀번호 (8자 이상)</span><input id="paycheck-profile-password" type="password" autocomplete="new-password" minlength="8" placeholder="비밀번호 입력"></label>
         <div class="paycheck-vault-actions">
@@ -4771,7 +4772,7 @@ function paycheckRecordActualMonth(){
   if(old && !window.confirm(month+'의 기존 급여명세서 기록을 새 기록으로 교체할까요?'))return;
   const base=paycheckPrivateProfile||{
     format:'INY_PAYCHECK_DEDUCTIONS_V1',employee:person.name,
-    aliases:[person.name],months:{},carryForwardMaxMonths:0
+    aliases:[person.name],months:{},carryForwardMaxMonths:12
   };
   try{
     const updated=paycheckValidatePrivateProfile({...base,
@@ -5003,8 +5004,11 @@ function paycheckCompute(){
       hospital.overtimeHours+'h · 일요일 주간 '+hospital.sundayDay+'회 + 공휴일 종일 '+hospital.holidayFullDay+
       '회 + 공휴일 채혈실 1인 '+hospital.holidayPhlebotomyPaidDates.length+'회 (각 8h) = 추가휴일 '+hospital.holidayHours+
       'h. 기존 야간수당은 기본 '+included+'회 지급 가정. 실제 정산·공휴일 구분·공제는 미확정.';
-    netBadge.textContent=hasDeductions?'입력 공제기준 · 병원 잠정규칙':'병원 안내 잠정규칙';
-    netNote.textContent='근무표 기반 비교값 · 과거 시행일·인정시간 미확정 · 실제 공제와 별도 대조';
+    netBadge.textContent=hasDeductions?'실제 공제합계 입력 · 잠정':
+      paycheckProfileSource?'실제 보험료 기준 · 잠정':'병원 안내 잠정규칙';
+    netNote.textContent=hasDeductions?'사용자가 입력한 실제 공제합계 적용 · 근무표 세전급여 기준':
+      paycheckProfileSource?'명세서 보험료·상조회비 반영 · 소득세·고용보험은 해당 월 자동 계산 · 변동·정산 시 갱신 필요':
+      '근무표 기반 비교값 · 실제 보험료·세금 기준 미확정';
   }else{
     paycheckShowMonthVariance({counts,rate,nightCount,nightPolicy,nightHours,nightIncluded,night,gross,deductions,hasDeductions,autoDeductions,netEl,netBadge,netNote});
   }
@@ -5157,7 +5161,7 @@ function paycheckValidatePrivateProfile(source){
     Number(preferred.role)<10000000&&/^20\d{2}-(0[1-9]|1[0-2])$/.test(preferred.asOf||'');
   return {format:'INY_PAYCHECK_DEDUCTIONS_V1',employee,
     aliases:[...new Set(aliases)],months,actualRecords,monthlyPayData:paycheckNormalizeMonthlyPayData(source.monthlyPayData),
-    carryForwardMaxMonths:Math.max(0,Math.min(3,Number(source.carryForwardMaxMonths)||0)),
+    carryForwardMaxMonths:Math.max(0,Math.min(12,Number(source.carryForwardMaxMonths)||0)),
     ...(validDefault?{salaryDefaults:{rate:Number(preferred.rate),role:Number(preferred.role),asOf:preferred.asOf}}:{})};
 }
 function paycheckPrivateMatchesEmployee(profile,name){
@@ -5173,7 +5177,19 @@ function paycheckPrivatePeriod(profile,monthKey){
   const distance=(+monthKey.slice(0,4)-+last.slice(0,4))*12+
     (+monthKey.slice(5)-+last.slice(5));
   if(distance<=0 || distance>profile.carryForwardMaxMonths)return null;
-  return {month:last,record:profile.months[last],provisional:true};
+  const yearFrom=Number(last.slice(0,4)),yearTo=Number(monthKey.slice(0,4));
+  const crossedMonth=anchor=>{
+    for(let year=yearFrom;year<=yearTo;year++){
+      const boundary=year+'-'+String(anchor).padStart(2,'0');
+      if(boundary>last && boundary<=monthKey)return true;
+    }
+    return false;
+  };
+  const updates=[];
+  if(yearTo>yearFrom)updates.push('연초 보험요율 변경 여부 확인');
+  if(crossedMonth(4))updates.push('4월 건강보험 정산·보수월액 확인');
+  if(crossedMonth(7))updates.push('7월 국민연금 기준소득월액 확인');
+  return {month:last,record:profile.months[last],provisional:true,renewalNotices:updates};
 }
 function paycheckApplyPrivateProfile(){
   paycheckProfileSource='';
@@ -5198,8 +5214,9 @@ function paycheckApplyPrivateProfile(){
   }
   if(exactApplied)paycheckApplyMonthlyPayData(profile.monthlyPayData?.[month]);
   paycheckProfileSource=found.provisional?
-    '내 '+found.month+' 공제기준을 '+month+'에 임시 적용 · 실제 변경 여부 확인 필요':
-    '내 '+month+' 명세서 공제기록 적용';
+    '공제기준: '+found.month+' 실보험료·상조회비를 '+month+'에 임시 이월'+
+    (found.renewalNotices?.length?' · '+found.renewalNotices.join(' / '):' · 실제 공제 변동 시 갱신'):
+    '공제기준: '+month+' 명세서 실보험료·상조회비 적용';
   paycheckProfileMessage(paycheckProfileSource+' · 기기에서만 사용');
   return true;
 }
@@ -5297,13 +5314,14 @@ function paycheckSaveCurrentMonthProfile(){
   }
   if(!Object.keys(record).length){paycheckProfileMessage('저장할 실제 보험료나 상조회비를 먼저 입력하세요.');return;}
   const base=paycheckPrivateProfile||{format:'INY_PAYCHECK_DEDUCTIONS_V1',employee:employee.name,
-    aliases:[employee.name],months:{},carryForwardMaxMonths:0};
-  const full=paycheckValidatePrivateProfile({...base,months:{...base.months,[month]:record},monthlyPayData:{...(base.monthlyPayData||{}),[month]:paycheckReadMonthlyPayData()}});
+    aliases:[employee.name],months:{},carryForwardMaxMonths:12};
+  const full=paycheckValidatePrivateProfile({...base,carryForwardMaxMonths:12,
+    months:{...base.months,[month]:record},monthlyPayData:{...(base.monthlyPayData||{}),[month]:paycheckReadMonthlyPayData()}});
   paycheckPendingProfile=full;
   paycheckPrivateProfile=full;
   paycheckApplyPrivateProfile();
   paycheckCompute();
-  paycheckProfileMessage(month+' 공제기준을 임시 등록했습니다. 암호화 저장을 눌러 이 브라우저에 보관하세요.');
+  paycheckProfileMessage(month+' 실보험료·상조회비 등록 완료. 다음 최대 12개월에 임시 적용합니다. 영구 보관은 암호화 저장을 눌러 주세요.');
 }
 function paycheckForgetEncryptedProfile(){
   if(!confirm('이 기기의 암호화된 개인 공제자료를 삭제할까요?'))return;
@@ -5340,7 +5358,7 @@ function paycheckPrivateLinkTryApply(){
   paycheckUpdateNameButtons();
   paycheckApplyPrivateProfile();
   paycheckCompute();
-  paycheckProfileMessage('개인 링크로 공제내역 적용 완료. 9월 실제 공제액을 반영했습니다. 다음 접속에도 사용하려면 비밀번호로 암호화 저장하세요.');
+  paycheckProfileMessage('개인 링크로 '+pending.month+' 공제내역을 적용했습니다. 다음 접속에도 사용하려면 비밀번호로 암호화 저장하세요.');
   return true;
 }
 async function paycheckPrivateLinkStartup(){
